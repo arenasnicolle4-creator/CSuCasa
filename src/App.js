@@ -452,15 +452,29 @@ const handleSubmit = async () => {
   formData.append('Discount', `-$${getDiscount().toFixed(2)}`);
   formData.append('TOTAL PRICE', `$${calculateTotal().toFixed(2)}`);
 
+  // FormSubmit requires these for AJAX submissions
+  formData.append('_captcha', 'false'); // Disable captcha
+  formData.append('_template', 'table'); // Use table format for email
+
   try {
-    // Send to FormSubmit
-    await fetch('https://formsubmit.co/AkCleaningSuCasa@gmail.com', {
+    // Send to FormSubmit with proper headers
+    const response = await fetch('https://formsubmit.co/ajax/AkCleaningSuCasa@gmail.com', {
       method: 'POST',
-      body: formData,
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(Object.fromEntries(formData))
     });
 
-    // Show success modal
-    setShowSuccessModal(true);
+    const result = await response.json();
+    
+    if (result.success) {
+      // Show success modal
+      setShowSuccessModal(true);
+    } else {
+      alert('There was an error submitting your booking. Please try again or call us directly.');
+    }
   } catch (error) {
     console.error('Submission error:', error);
     alert('There was an error submitting your booking. Please try again or call us directly.');
@@ -471,8 +485,7 @@ return (
   ref={formTopRef}
   style={{
       minHeight: "100vh",
-      background:
-      "linear-gradient(180deg, #ffffff 0%, #f0f9ff 30%, #e0f2fe 60%, #bae6fd 100%)",
+      background: "#ffffff",
       padding: "20px",
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
     }}
@@ -566,7 +579,7 @@ input:focus, textarea:focus, select:focus {
   /* Make main grid single column on mobile with bottom padding for sticky price */
   .mobile-responsive-grid {
     grid-template-columns: 1fr !important;
-    padding-bottom: 400px !important;
+    padding-bottom: 320px !important;
   }
   
   /* Service Type cards - keep 2 columns but adjust sizing */
