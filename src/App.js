@@ -547,10 +547,26 @@ input:focus, textarea:focus, select:focus {
     display: none !important;
   }
   
+  /* Hide desktop price sidebar on mobile */
+  .price-sidebar {
+    display: none !important;
+  }
+  
+  /* Show mobile price sticky at bottom */
+  .mobile-price-sticky {
+    display: block !important;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1000 !important;
+    width: 100vw !important;
+  }
+  
   /* Make main grid single column on mobile with bottom padding for sticky price */
   .mobile-responsive-grid {
     grid-template-columns: 1fr !important;
-    padding-bottom: 450px !important;
+    padding-bottom: 400px !important;
   }
   
   /* Service Type cards - keep 2 columns but adjust sizing */
@@ -597,41 +613,11 @@ input:focus, textarea:focus, select:focus {
   .button-row button {
     width: 100% !important;
   }
-  
-  /* PRICE SIDEBAR - STICKY AT BOTTOM */
-  .price-sidebar {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    top: auto !important;
-    z-index: 1000 !important;
-    max-height: 65vh !important;
-    width: 100vw !important;
-    margin: 0 !important;
-  }
-  
-  .price-sidebar > div {
-    border-radius: 20px 20px 0 0 !important;
-    display: flex !important;
-    flex-direction: column-reverse !important;
-  }
-  
-  /* Price sections reordering - Total first, then breakdown, then header */
-  .price-sidebar > div > div:last-child {
-    order: 1 !important;
-    border-top: none !important;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
-  }
-  
-  .price-sidebar > div > div:nth-child(2) {
-    order: 2 !important;
-    max-height: 250px !important;
-    overflow-y: auto !important;
-  }
-  
-  .price-sidebar > div > div:first-child {
-    order: 3 !important;
+}
+
+/* Desktop - hide mobile price */
+@media (min-width: 769px) {
+  .mobile-price-sticky {
     display: none !important;
   }
 }
@@ -3290,6 +3276,152 @@ GUARANTEED
 </div>
 )}
 </div>
+
+{/* MOBILE-ONLY PRICE DISPLAY - STICKY AT BOTTOM */}
+{(step === 2 || step === 3) && (
+  <div className="mobile-price-sticky">
+    <div style={{
+      background: "linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%)",
+      borderRadius: "20px 20px 0 0",
+      overflow: "hidden",
+      boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.3)",
+      border: "1px solid rgba(255, 255, 255, 0.1)",
+      maxHeight: "65vh",
+      display: "flex",
+      flexDirection: "column",
+    }}>
+      {/* TOTAL SECTION - FIRST */}
+      <div style={{
+        padding: "20px 25px",
+        background: "linear-gradient(135deg, #06b6d4 0%, #0ea5e9 100%)",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
+      }}>
+        <div style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+        }}>
+          <div style={{
+            color: "white",
+            fontWeight: "900",
+            fontSize: "16px",
+            letterSpacing: "1px",
+            textTransform: "uppercase",
+          }}>
+            Total
+          </div>
+          <div style={{
+            color: "white",
+            fontWeight: "900",
+            fontSize: "32px",
+            textShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
+          }}>
+            ${calculateTotal().toFixed(2)}
+          </div>
+        </div>
+      </div>
+
+      {/* DISCOUNT (if applicable) */}
+      {getDiscount() > 0 && (
+        <div style={{
+          padding: "12px 25px",
+          background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+        }}>
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}>
+            <div style={{ color: "white", fontWeight: "800", fontSize: "14px" }}>
+              {serviceType === "House Cleaning" && (
+                <>
+                  {frequency === "every-week" && "WEEKLY (20%)"}
+                  {frequency === "bi-weekly" && "BI-WEEKLY (15%)"}
+                  {frequency === "every-3-weeks" && "3-WEEK (12%)"}
+                  {frequency === "every-4-weeks" && "4-WEEK (9%)"}
+                </>
+              )}
+              {serviceType === "Airbnb Cleaning" && "DISCOUNTS APPLIED"}
+            </div>
+            <div style={{ color: "white", fontWeight: "900", fontSize: "14px" }}>
+              -${getDiscount().toFixed(2)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* SUBTOTAL */}
+      {getPriceBreakdown().length > 0 && (
+        <div style={{
+          padding: "12px 25px",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+        }}>
+          <div style={{
+            display: "flex",
+            justifyContent: "space-between",
+            alignItems: "center",
+          }}>
+            <div style={{
+              color: "#06b6d4",
+              fontWeight: "800",
+              fontSize: "14px",
+              textTransform: "uppercase",
+            }}>
+              Subtotal
+            </div>
+            <div style={{ color: "white", fontWeight: "900", fontSize: "14px" }}>
+              ${calculateSubtotal().toFixed(2)}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* LINE ITEMS - SCROLLABLE */}
+      <div style={{
+        padding: "15px 25px",
+        overflowY: "auto",
+        maxHeight: "200px",
+      }}>
+        {getPriceBreakdown().length === 0 ? (
+          <div style={{
+            textAlign: "center",
+            padding: "20px",
+            color: "rgba(255, 255, 255, 0.5)",
+            fontSize: "13px",
+            fontWeight: "600",
+          }}>
+            Select services to see pricing
+          </div>
+        ) : (
+          getPriceBreakdown().map((item, index) => (
+            <div
+              key={index}
+              style={{
+                display: "flex",
+                justifyContent: "space-between",
+                alignItems: "center",
+                padding: "8px 0",
+                borderBottom: index < getPriceBreakdown().length - 1 ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
+                fontSize: "13px",
+              }}
+            >
+              <div style={{
+                color: "rgba(255, 255, 255, 0.8)",
+                fontWeight: "600",
+              }}>
+                {item.label}
+              </div>
+              <div style={{ color: "white", fontWeight: "800" }}>
+                ${item.amount.toFixed(2)}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  </div>
+)}
+
 {/* Success Modal */}
 {showSuccessModal && (
     <div
