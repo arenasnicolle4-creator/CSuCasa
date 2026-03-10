@@ -565,15 +565,21 @@ input:focus, textarea:focus, select:focus {
     gap: 12px !important;
   }
   
+  /* Turnovers per month - 2 columns on mobile instead of 4 */
+  .turnovers-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+  }
+  
   /* Square feet to 2 columns */
   .sqft-grid {
     grid-template-columns: 1fr 1fr !important;
     gap: 10px !important;
   }
   
-  /* Add-ons to single column */
+  /* Add-ons to 2 columns on mobile for better fit */
   .addons-grid {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: repeat(2, 1fr) !important;
     gap: 12px !important;
   }
   
@@ -1281,6 +1287,7 @@ style={{
   </select>
 ) : (
 <div
+className="turnovers-grid"
 style={{
     display: "grid",
     gridTemplateColumns: "repeat(4, 1fr)",
@@ -2029,6 +2036,7 @@ style={{
 )}
 {/* Add-ons Grid - CONDITIONAL BASED ON SERVICE TYPE */}
 <div
+className="addons-grid"
 style={{
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
