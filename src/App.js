@@ -598,41 +598,41 @@ input:focus, textarea:focus, select:focus {
     width: 100% !important;
   }
   
-  /* PRICE SIDEBAR - STICKY AT BOTTOM WITH TOTAL FIRST */
-  .mobile-responsive-grid > div:nth-child(2) {
+  /* PRICE SIDEBAR - STICKY AT BOTTOM */
+  .price-sidebar {
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
+    top: auto !important;
     z-index: 1000 !important;
-    max-height: 60vh !important;
+    max-height: 65vh !important;
     width: 100vw !important;
+    margin: 0 !important;
   }
   
-  .mobile-responsive-grid > div:nth-child(2) > div {
+  .price-sidebar > div {
     border-radius: 20px 20px 0 0 !important;
     display: flex !important;
     flex-direction: column-reverse !important;
   }
   
-  /* Move total section to top */
-  .mobile-responsive-grid > div:nth-child(2) > div > div:last-child {
+  /* Price sections reordering - Total first, then breakdown, then header */
+  .price-sidebar > div > div:last-child {
     order: 1 !important;
     border-top: none !important;
     border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
   }
   
-  /* Breakdown section below total */
-  .mobile-responsive-grid > div:nth-child(2) > div > div:nth-child(2) {
+  .price-sidebar > div > div:nth-child(2) {
     order: 2 !important;
-    max-height: 200px !important;
+    max-height: 250px !important;
+    overflow-y: auto !important;
   }
   
-  /* Header at bottom */
-  .mobile-responsive-grid > div:nth-child(2) > div > div:first-child {
+  .price-sidebar > div > div:first-child {
     order: 3 !important;
-    border-bottom: none !important;
-    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
+    display: none !important;
   }
 }
 `}</style>
@@ -3040,7 +3040,7 @@ Terms & Conditions
 {/* Price Sidebar */}
 {(step === 2 || step === 3) && (
     <div
-    className="fade-in-up"
+    className="fade-in-up price-sidebar"
     style={{
         position: "sticky",
         top: "20px",
