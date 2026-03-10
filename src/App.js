@@ -401,73 +401,76 @@ const handleContinueToAddOns = () => {
 }
 };
 const handleSubmit = async () => {
-  // Create email body with all booking details
-  const emailSubject = "NEW BOOKING REQUEST - Cleaning Su Casa";
+  // Prepare form data for FormSubmit
+  const formData = new FormData();
   
-  let emailBody = `NEW BOOKING REQUEST\n\n`;
-  emailBody += `=== CUSTOMER INFO ===\n`;
-  emailBody += `Name: ${firstName} ${lastName}\n`;
-  emailBody += `Email: ${email}\n`;
-  emailBody += `Phone: ${phone}\n\n`;
-  
-  emailBody += `=== SERVICE ADDRESS ===\n`;
-  emailBody += `${address}\n`;
-  if (address2) emailBody += `${address2}\n`;
-  emailBody += `${city}, ${state} ${zip}\n\n`;
-  
-  emailBody += `=== SERVICE DETAILS ===\n`;
-  emailBody += `Service Type: ${serviceType}\n`;
-  emailBody += `Frequency: ${frequency}\n`;
+  // Add all form fields
+  formData.append('_subject', 'NEW BOOKING REQUEST - Cleaning Su Casa');
+  formData.append('First Name', firstName);
+  formData.append('Last Name', lastName);
+  formData.append('Phone', phone);
+  formData.append('Email', email);
+  formData.append('Street Address', address);
+  formData.append('Apt/Suite/Unit', address2 || 'N/A');
+  formData.append('City', city);
+  formData.append('State', state);
+  formData.append('ZIP', zip);
+  formData.append('Service Type', serviceType);
+  formData.append('Frequency', frequency);
   
   if (serviceType === "House Cleaning") {
-    emailBody += `Square Feet: ${squareFeetRange}\n`;
-    emailBody += `Bedrooms: ${bedrooms}\n`;
+    formData.append('Square Feet Range', squareFeetRange);
+    formData.append('Bedrooms', bedrooms);
   } else {
-    emailBody += `Square Feet: ${airbnbSquareFeet}\n`;
-    emailBody += `Laundry: ${airbnbLaundry}\n`;
-    emailBody += `Beds: ${airbnbBeds}\n`;
-    emailBody += `Units: ${airbnbUnits}\n`;
+    formData.append('Square Feet', airbnbSquareFeet);
+    formData.append('Laundry', airbnbLaundry);
+    formData.append('Beds', airbnbBeds);
+    formData.append('Units', airbnbUnits);
   }
   
-  emailBody += `Bathrooms: ${bathrooms}\n\n`;
+  formData.append('Bathrooms', bathrooms);
   
-  emailBody += `=== ADD-ONS ===\n`;
-  if (addOns.fridge) emailBody += `- Inside Fridge\n`;
-  if (addOns.oven) emailBody += `- Inside Oven\n`;
-  if (addOns.microwave) emailBody += `- Inside Microwave\n`;
-  if (addOns.deepClean > 0) emailBody += `- Deep Clean +${addOns.deepClean}hr\n`;
-  if (addOns.linens > 0) emailBody += `- ${addOns.linens} Linen Set(s)\n`;
-  if (addOns.dishes) emailBody += `- Clean Dishes\n`;
-  if (addOns.windows > 0) emailBody += `- ${addOns.windows} Window(s)\n`;
-  if (addOns.pets > 0) emailBody += `- ${addOns.pets} Pet(s)\n`;
-  if (addOns.baseTrimFeet > 0) emailBody += `- Base Trim (${addOns.baseTrimFeet} ft)\n`;
-  emailBody += `\n`;
+  // Add-ons
+  const addOnsList = [];
+  if (addOns.fridge) addOnsList.push('Inside Fridge');
+  if (addOns.oven) addOnsList.push('Inside Oven');
+  if (addOns.microwave) addOnsList.push('Inside Microwave');
+  if (addOns.deepClean > 0) addOnsList.push(`Deep Clean +${addOns.deepClean}hr`);
+  if (addOns.linens > 0) addOnsList.push(`${addOns.linens} Linen Set(s)`);
+  if (addOns.dishes) addOnsList.push('Clean Dishes');
+  if (addOns.windows > 0) addOnsList.push(`${addOns.windows} Window(s)`);
+  if (addOns.pets > 0) addOnsList.push(`${addOns.pets} Pet(s)`);
+  if (addOns.baseTrimFeet > 0) addOnsList.push(`Base Trim (${addOns.baseTrimFeet} ft)`);
+  formData.append('Add-Ons', addOnsList.join(', ') || 'None');
   
-  if (keyAreas) {
-    emailBody += `=== KEY AREAS ===\n${keyAreas}\n\n`;
-  }
+  formData.append('Key Areas', keyAreas || 'None specified');
+  formData.append('Additional Notes', additionalNotes || 'None');
+  formData.append('Preferred Day 1', preferredDay1 || 'Not specified');
+  formData.append('Preferred Day 2', preferredDay2 || 'Not specified');
+  formData.append('Preferred Times', preferredTimes.join(', ') || 'Any time');
   
-  if (additionalNotes) {
-    emailBody += `=== ADDITIONAL NOTES ===\n${additionalNotes}\n\n`;
-  }
-  
-  emailBody += `=== SCHEDULING ===\n`;
-  if (preferredDay1) emailBody += `First Choice: ${preferredDay1}\n`;
-  if (preferredDay2) emailBody += `Second Choice: ${preferredDay2}\n`;
-  if (preferredTimes.length > 0) emailBody += `Preferred Times: ${preferredTimes.join(", ")}\n`;
-  emailBody += `\n`;
-  
-  emailBody += `=== PRICING ===\n`;
-  emailBody += `Subtotal: $${calculateSubtotal().toFixed(2)}\n`;
-  emailBody += `Discount: -$${getDiscount().toFixed(2)}\n`;
-  emailBody += `TOTAL: $${calculateTotal().toFixed(2)}\n`;
+  // Pricing
+  formData.append('Subtotal', `$${calculateSubtotal().toFixed(2)}`);
+  formData.append('Discount', `-$${getDiscount().toFixed(2)}`);
+  formData.append('TOTAL PRICE', `$${calculateTotal().toFixed(2)}`);
 
-  // Open mailto link
-  const mailtoLink = `mailto:${BUSINESS_EMAIL}?subject=${encodeURIComponent(emailSubject)}&body=${encodeURIComponent(emailBody)}`;
-  window.location.href = mailtoLink;
+  try {
+    // Send to FormSubmit
+    const response = await fetch('https://formsubmit.co/AkCleaningSuCasa@gmail.com', {
+      method: 'POST',
+      body: formData,
+    });
 
-  // Show success modal
-  setShowSuccessModal(true);
+    if (response.ok) {
+      // Show success modal
+      setShowSuccessModal(true);
+    } else {
+      alert('There was an error submitting your booking. Please try again or call us directly.');
+    }
+  } catch (error) {
+    console.error('Submission error:', error);
+    alert('There was an error submitting your booking. Please try again or call us directly.');
+  }
 };
 return (
   <div
