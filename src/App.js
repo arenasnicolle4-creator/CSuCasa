@@ -576,16 +576,43 @@ input:focus, textarea:focus, select:focus {
     width: 100vw !important;
   }
   
+  /* Limit mobile price height to max 45vh so it doesn't take over screen */
+  .mobile-price-sticky > div {
+    max-height: 45vh !important;
+  }
+  
+  /* Make breakdown scrollable with smaller max height */
+  .mobile-price-sticky .price-breakdown-items {
+    max-height: 150px !important;
+    overflow-y: auto !important;
+  }
+  
   /* Make main grid single column on mobile with bottom padding for sticky price */
   .mobile-responsive-grid {
     grid-template-columns: 1fr !important;
     padding-bottom: 320px !important;
   }
   
-  /* Service Type cards - keep 2 columns but adjust sizing */
+  /* Service Type cards - keep 2 columns with better mobile styling */
   .service-grid-2col {
     grid-template-columns: 1fr 1fr !important;
     gap: 12px !important;
+  }
+  
+  /* Service card text - ensure centered and wrap properly on mobile */
+  .service-grid-2col .service-card {
+    padding: 20px 10px !important;
+    text-align: center !important;
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+  }
+  
+  .service-grid-2col .service-card > div:last-child {
+    font-size: 14px !important;
+    line-height: 1.3 !important;
+    word-wrap: break-word !important;
   }
   
   /* City/State/ZIP - make full width on mobile */
@@ -3390,7 +3417,9 @@ GUARANTEED
       )}
 
       {/* LINE ITEMS - SCROLLABLE */}
-      <div style={{
+      <div 
+        className="price-breakdown-items"
+        style={{
         padding: "15px 25px",
         overflowY: "auto",
         maxHeight: "200px",
