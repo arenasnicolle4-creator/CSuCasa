@@ -547,36 +547,36 @@ input:focus, textarea:focus, select:focus {
 
 /* Mobile Responsive Styles */
 @media (max-width: 768px) {
+  /* Stack everything in one column */
   .main-container {
     grid-template-columns: 1fr !important;
-    gap: 0 !important;
     display: block !important;
+    padding-bottom: 400px !important;
   }
   
-  /* Make form content scrollable */
-  .main-container > div:first-child {
-    margin-bottom: 20px;
-  }
-  
-  /* Price sidebar sticky at bottom on mobile */
+  /* PRICE SIDEBAR - STICKY AT BOTTOM */
   .price-sidebar {
     position: fixed !important;
     bottom: 0 !important;
     left: 0 !important;
     right: 0 !important;
     top: auto !important;
-    max-height: 60vh !important;
-    z-index: 1000 !important;
+    max-height: 70vh !important;
+    z-index: 9999 !important;
     margin: 0 !important;
-    width: 100% !important;
-    display: flex !important;
+    width: 100vw !important;
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
   }
   
   .price-sidebar > div {
     border-radius: 20px 20px 0 0 !important;
     width: 100% !important;
+    display: block !important;
   }
   
+  /* Responsive form elements */
   .form-header {
     padding: 30px 20px !important;
   }
@@ -613,11 +613,6 @@ input:focus, textarea:focus, select:focus {
   .time-slots-grid {
     grid-template-columns: 1fr !important;
     gap: 10px !important;
-  }
-  
-  /* Add bottom padding to body so content isn't hidden */
-  body {
-    padding-bottom: 350px !important;
   }
 }
 `}</style>
