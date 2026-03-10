@@ -3216,6 +3216,27 @@ ${calculateSubtotal().toFixed(2)}
 </>
 )}
 </div>
+
+{/* Price Disclaimer */}
+<div style={{
+  padding: "12px 20px",
+  background: "rgba(255, 255, 255, 0.1)",
+  borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+  borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+}}>
+  <p style={{
+    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: "11px",
+    margin: 0,
+    fontWeight: "600",
+    lineHeight: "1.4",
+    textAlign: "center",
+    fontStyle: "italic",
+  }}>
+    💡 This is an estimate. Final prices may vary based on property condition and specific requirements.
+  </p>
+</div>
+
 <div
 style={{
     padding: "25px",
@@ -3415,6 +3436,26 @@ GUARANTEED
           </div>
         </div>
       )}
+
+      {/* Price Disclaimer */}
+      <div style={{
+        padding: "10px 20px",
+        background: "rgba(255, 255, 255, 0.1)",
+        borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+      }}>
+        <p style={{
+          color: "rgba(255, 255, 255, 0.85)",
+          fontSize: "10px",
+          margin: 0,
+          fontWeight: "600",
+          lineHeight: "1.3",
+          textAlign: "center",
+          fontStyle: "italic",
+        }}>
+          💡 Estimate only. Final price may vary.
+        </p>
+      </div>
 
       {/* LINE ITEMS - SCROLLABLE */}
       <div 
