@@ -401,8 +401,6 @@ const handleContinueToAddOns = () => {
 }
 };
 const handleSubmit = async () => {
-  const priceBreakdown = getPriceBreakdown();
-
   // Create email body with all booking details
   const emailSubject = "NEW BOOKING REQUEST - Cleaning Su Casa";
   
