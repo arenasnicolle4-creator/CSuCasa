@@ -7,13 +7,19 @@ import {
   Bath,
   Bed,
   Lightbulb,
+  PawPrint,
+  Ruler,
   MessageSquare,
   Clock,
+  DollarSign,
 } from "lucide-react";
 // ===== CONFIGURATION =====
 // Google Places API Key - for address autocomplete
 const GOOGLE_PLACES_API_KEY = "AIzaSyB18lv_Rulnv7jjFrM0PP57bCLO4U4_A_I";
-
+// Zapier Webhook URL - sends bookings to Jobber automatically
+const ZAPIER_WEBHOOK_URL =
+"https://hooks.zapier.com/hooks/catch/26296534/ulfejay/";
+const BUSINESS_EMAIL = "AkCleaningSuCasa@gmail.com";
 export default function App() {
   const formTopRef = useRef(null);
   const addressInputRef = useRef(null);
@@ -400,76 +406,63 @@ const handleContinueToAddOns = () => {
 }
 };
 const handleSubmit = async () => {
-  // Prepare form data for FormSubmit
-  const formData = new FormData();
-  
-  // Add all form fields
-  formData.append('_subject', 'NEW BOOKING REQUEST - Cleaning Su Casa');
-  formData.append('First Name', firstName);
-  formData.append('Last Name', lastName);
-  formData.append('Phone', phone);
-  formData.append('Email', email);
-  formData.append('Street Address', address);
-  formData.append('Apt/Suite/Unit', address2 || 'N/A');
-  formData.append('City', city);
-  formData.append('State', state);
-  formData.append('ZIP', zip);
-  formData.append('Service Type', serviceType);
-  formData.append('Frequency', frequency);
-  
-  if (serviceType === "House Cleaning") {
-    formData.append('Square Feet Range', squareFeetRange);
-    formData.append('Bedrooms', bedrooms);
-  } else {
-    formData.append('Square Feet', airbnbSquareFeet);
-    formData.append('Laundry', airbnbLaundry);
-    formData.append('Beds', airbnbBeds);
-    formData.append('Units', airbnbUnits);
-  }
-  
-  formData.append('Bathrooms', bathrooms);
-  
-  // Add-ons
-  const addOnsList = [];
-  if (addOns.fridge) addOnsList.push('Inside Fridge');
-  if (addOns.oven) addOnsList.push('Inside Oven');
-  if (addOns.microwave) addOnsList.push('Inside Microwave');
-  if (addOns.deepClean > 0) addOnsList.push(`Deep Clean +${addOns.deepClean}hr`);
-  if (addOns.linens > 0) addOnsList.push(`${addOns.linens} Linen Set(s)`);
-  if (addOns.dishes) addOnsList.push('Clean Dishes');
-  if (addOns.windows > 0) addOnsList.push(`${addOns.windows} Window(s)`);
-  if (addOns.pets > 0) addOnsList.push(`${addOns.pets} Pet(s)`);
-  if (addOns.baseTrimFeet > 0) addOnsList.push(`Base Trim (${addOns.baseTrimFeet} ft)`);
-  formData.append('Add-Ons', addOnsList.join(', ') || 'None');
-  
-  formData.append('Key Areas', keyAreas || 'None specified');
-  formData.append('Additional Notes', additionalNotes || 'None');
-  formData.append('Preferred Day 1', preferredDay1 || 'Not specified');
-  formData.append('Preferred Day 2', preferredDay2 || 'Not specified');
-  formData.append('Preferred Times', preferredTimes.join(', ') || 'Any time');
-  
-  // Pricing
-  formData.append('Subtotal', `$${calculateSubtotal().toFixed(2)}`);
-  formData.append('Discount', `-$${getDiscount().toFixed(2)}`);
-  formData.append('TOTAL PRICE', `$${calculateTotal().toFixed(2)}`);
-
-  try {
-    // Send to FormSubmit
-    const response = await fetch('https://formsubmit.co/AkCleaningSuCasa@gmail.com', {
-      method: 'POST',
-      body: formData,
+  const priceBreakdown = getPriceBreakdown();
+  const bookingData = {
+    firstName,
+    lastName,
+    phone,
+    email,
+    address,
+    address2,
+    city,
+    state,
+    zip,
+    fullAddress: `${address}${
+      address2 ? ", " + address2 : ""
+    }, ${city}, ${state} ${zip}`.trim(),
+  serviceType,
+  frequency,
+  squareFeetRange,
+  airbnbSquareFeet,
+  airbnbLaundry,
+  airbnbBeds,
+  airbnbUnits,
+  bedrooms,
+  bathrooms,
+  addOns,
+  keyAreas,
+  additionalNotes,
+  preferredDay1,
+  preferredDay2,
+  preferredTimes,
+  priceBreakdown: priceBreakdown,
+  subtotal: calculateSubtotal().toFixed(2),
+  discount: getDiscount().toFixed(2),
+  totalPrice: calculateTotal().toFixed(2),
+  timestamp: new Date().toISOString(),
+};
+console.log("=== SUBMITTING BOOKING ===");
+console.log("Booking Data:", JSON.stringify(bookingData, null, 2));
+console.log("Zapier URL:", ZAPIER_WEBHOOK_URL);
+// Send to Zapier webhook
+try {
+  console.log("Sending to Zapier...");
+  const response = await fetch(ZAPIER_WEBHOOK_URL, {
+      method: "POST",
+      mode: "no-cors",
+      body: JSON.stringify(bookingData),
     });
-
-    if (response.ok) {
-      // Show success modal
-      setShowSuccessModal(true);
-    } else {
-      alert('There was an error submitting your booking. Please try again or call us directly.');
-    }
-  } catch (error) {
-    console.error('Submission error:', error);
-    alert('There was an error submitting your booking. Please try again or call us directly.');
-  }
+console.log("✅ Data sent to Zapier!");
+console.log(
+  "Note: With no-cors mode, we cannot see the response, but data was sent."
+);
+} catch (error) {
+console.error("❌ Zapier webhook error:", error);
+console.error("Error details:", error.message);
+}
+console.log("=== BOOKING COMPLETE ===");
+// Show success modal instead of alert
+setShowSuccessModal(true);
 };
 return (
   <div
@@ -545,79 +538,55 @@ input:focus, textarea:focus, select:focus {
   0 0 40px rgba(6, 182, 212, 0.2);
 }
 
-/* Mobile Responsive Styles */
+/* Mobile Styles */
 @media (max-width: 768px) {
-  /* Stack everything in one column */
-  .main-container {
+  /* Hide 100% Satisfaction badge on mobile */
+  .satisfaction-badge {
+    display: none !important;
+  }
+  
+  /* Make grid single column on mobile */
+  .mobile-responsive-grid {
     grid-template-columns: 1fr !important;
-    display: block !important;
-    padding-bottom: 400px !important;
   }
   
-  /* PRICE SIDEBAR - STICKY AT BOTTOM */
-  .price-sidebar {
-    position: fixed !important;
-    bottom: 0 !important;
-    left: 0 !important;
-    right: 0 !important;
-    top: auto !important;
-    max-height: 70vh !important;
-    z-index: 9999 !important;
-    margin: 0 !important;
-    width: 100vw !important;
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-  }
-  
-  .price-sidebar > div {
-    border-radius: 20px 20px 0 0 !important;
-    width: 100% !important;
-    display: block !important;
-  }
-  
-  /* Responsive form elements */
-  .form-header {
-    padding: 30px 20px !important;
-  }
-  
-  .service-grid-2 {
+  /* Service type and other grids to single column */
+  .service-grid-2col {
     grid-template-columns: 1fr !important;
-    gap: 15px !important;
   }
   
-  .address-grid {
+  /* Address grid to single column */
+  .address-3col {
     grid-template-columns: 1fr !important;
-    gap: 12px !important;
   }
   
-  .button-group {
-    flex-direction: column !important;
-    margin-bottom: 20px !important;
-  }
-  
-  .button-group button {
-    width: 100% !important;
-  }
-  
-  .square-feet-grid {
+  /* Square feet to 2 columns */
+  .sqft-grid {
     grid-template-columns: 1fr 1fr !important;
-    gap: 10px !important;
   }
   
+  /* Add-ons to single column */
   .addons-grid {
     grid-template-columns: 1fr !important;
-    gap: 12px !important;
   }
   
-  .time-slots-grid {
+  /* Time slots to single column */
+  .time-grid {
     grid-template-columns: 1fr !important;
-    gap: 10px !important;
+  }
+  
+  /* Buttons stack vertically */
+  .button-row {
+    flex-direction: column !important;
+  }
+  
+  .button-row button {
+    width: 100% !important;
   }
 }
 `}</style>
 <div
-className="main-container"
+className="mobile-responsive-grid"
 style={{
     maxWidth: "1400px",
     margin: "0 auto",
@@ -640,7 +609,6 @@ style={{
 >
 {/* Header with Custom Animated Title */}
 <div
-className="form-header"
 style={{
     background: "linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%)",
     padding: step === 1 ? "50px 30px" : "30px",
@@ -1061,7 +1029,6 @@ style={{
 />
 {/* City, State, Zip */}
 <div
-className="address-grid"
 style={{
     display: "grid",
     gridTemplateColumns: "1fr 1fr 1fr",
@@ -1151,7 +1118,6 @@ style={{
 Service Type *
 </label>
 <div
-className="service-grid-2"
 style={{
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
@@ -1441,7 +1407,6 @@ style={{
   Home Size *
   </label>
   <div
-  className="square-feet-grid"
   style={{
       display: "grid",
       gridTemplateColumns:
@@ -1892,7 +1857,6 @@ style={{
 </p>
 </div>
 <div
-className="button-group"
 style={{ display: "flex", gap: "15px", marginTop: "40px" }}
 >
 <button
@@ -2018,7 +1982,6 @@ style={{
 )}
 {/* Add-ons Grid - CONDITIONAL BASED ON SERVICE TYPE */}
 <div
-className="addons-grid"
 style={{
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
@@ -2874,7 +2837,6 @@ style={{
 Preferred Time(s)
 </label>
 <div
-className="time-slots-grid"
 style={{
     display: "grid",
     gridTemplateColumns:
@@ -2914,7 +2876,7 @@ style={{
   ))}
 </div>
 </div>
-<div className="button-group" style={{ display: "flex", gap: "15px" }}>
+<div style={{ display: "flex", gap: "15px" }}>
 <button
 onClick={() => {
   setStep(2);
@@ -3023,7 +2985,7 @@ Terms & Conditions
 {/* Price Sidebar */}
 {(step === 2 || step === 3) && (
     <div
-    className="fade-in-up price-sidebar"
+    className="fade-in-up"
     style={{
         position: "sticky",
         top: "20px",
@@ -3174,7 +3136,6 @@ ${calculateSubtotal().toFixed(2)}
 )}
 </div>
 <div
-className="price-total-section"
 style={{
     padding: "25px",
     background:
@@ -3242,6 +3203,33 @@ style={{
 ${calculateTotal().toFixed(2)}
 </div>
 </div>
+</div>
+</div>
+<div
+className="satisfaction-badge"
+style={{
+    marginTop: "20px",
+    padding: "20px",
+    background: "white",
+    borderRadius: "20px",
+    textAlign: "center",
+    boxShadow: "0 15px 40px rgba(0, 0, 0, 0.1)",
+    border: "1px solid rgba(12, 74, 110, 0.1)",
+  }}
+>
+<div style={{ fontSize: "36px", marginBottom: "12px" }}>🛡️</div>
+<div
+style={{
+    fontSize: "13px",
+    color: "#0c4a6e",
+    fontWeight: "800",
+    lineHeight: "1.6",
+    letterSpacing: "0.3px",
+  }}
+>
+100% SATISFACTION
+<br />
+GUARANTEED
 </div>
 </div>
 </div>
