@@ -550,6 +550,12 @@ input:focus, textarea:focus, select:focus {
   .main-container {
     grid-template-columns: 1fr !important;
     gap: 0 !important;
+    display: block !important;
+  }
+  
+  /* Make form content scrollable */
+  .main-container > div:first-child {
+    margin-bottom: 20px;
   }
   
   /* Price sidebar sticky at bottom on mobile */
@@ -559,18 +565,16 @@ input:focus, textarea:focus, select:focus {
     left: 0 !important;
     right: 0 !important;
     top: auto !important;
-    max-height: 65vh !important;
+    max-height: 60vh !important;
     z-index: 1000 !important;
     margin: 0 !important;
+    width: 100% !important;
+    display: flex !important;
   }
   
   .price-sidebar > div {
     border-radius: 20px 20px 0 0 !important;
-  }
-  
-  /* Add padding to form so content isn't hidden behind sticky price */
-  body > div > div > div:first-child {
-    padding-bottom: 300px !important;
+    width: 100% !important;
   }
   
   .form-header {
@@ -609,6 +613,11 @@ input:focus, textarea:focus, select:focus {
   .time-slots-grid {
     grid-template-columns: 1fr !important;
     gap: 10px !important;
+  }
+  
+  /* Add bottom padding to body so content isn't hidden */
+  body {
+    padding-bottom: 350px !important;
   }
 }
 `}</style>
