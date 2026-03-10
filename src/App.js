@@ -7,19 +7,12 @@ import {
   Bath,
   Bed,
   Lightbulb,
-  PawPrint,
-  Ruler,
   MessageSquare,
   Clock,
-  DollarSign,
 } from "lucide-react";
 // ===== CONFIGURATION =====
 // Google Places API Key - for address autocomplete
 const GOOGLE_PLACES_API_KEY = "AIzaSyB18lv_Rulnv7jjFrM0PP57bCLO4U4_A_I";
-// Zapier Webhook URL - sends bookings to Jobber automatically
-const ZAPIER_WEBHOOK_URL =
-"https://hooks.zapier.com/hooks/catch/26296534/ulfejay/";
-const BUSINESS_EMAIL = "AkCleaningSuCasa@gmail.com";
 export default function App() {
   const formTopRef = useRef(null);
   const addressInputRef = useRef(null);
@@ -406,63 +399,72 @@ const handleContinueToAddOns = () => {
 }
 };
 const handleSubmit = async () => {
-  const priceBreakdown = getPriceBreakdown();
-  const bookingData = {
-    firstName,
-    lastName,
-    phone,
-    email,
-    address,
-    address2,
-    city,
-    state,
-    zip,
-    fullAddress: `${address}${
-      address2 ? ", " + address2 : ""
-    }, ${city}, ${state} ${zip}`.trim(),
-  serviceType,
-  frequency,
-  squareFeetRange,
-  airbnbSquareFeet,
-  airbnbLaundry,
-  airbnbBeds,
-  airbnbUnits,
-  bedrooms,
-  bathrooms,
-  addOns,
-  keyAreas,
-  additionalNotes,
-  preferredDay1,
-  preferredDay2,
-  preferredTimes,
-  priceBreakdown: priceBreakdown,
-  subtotal: calculateSubtotal().toFixed(2),
-  discount: getDiscount().toFixed(2),
-  totalPrice: calculateTotal().toFixed(2),
-  timestamp: new Date().toISOString(),
-};
-console.log("=== SUBMITTING BOOKING ===");
-console.log("Booking Data:", JSON.stringify(bookingData, null, 2));
-console.log("Zapier URL:", ZAPIER_WEBHOOK_URL);
-// Send to Zapier webhook
-try {
-  console.log("Sending to Zapier...");
-  const response = await fetch(ZAPIER_WEBHOOK_URL, {
-      method: "POST",
-      mode: "no-cors",
-      body: JSON.stringify(bookingData),
+  // Prepare form data for FormSubmit
+  const formData = new FormData();
+  
+  // Add all form fields
+  formData.append('_subject', 'NEW BOOKING REQUEST - Cleaning Su Casa');
+  formData.append('First Name', firstName);
+  formData.append('Last Name', lastName);
+  formData.append('Phone', phone);
+  formData.append('Email', email);
+  formData.append('Street Address', address);
+  formData.append('Apt/Suite/Unit', address2 || 'N/A');
+  formData.append('City', city);
+  formData.append('State', state);
+  formData.append('ZIP', zip);
+  formData.append('Service Type', serviceType);
+  formData.append('Frequency', frequency);
+  
+  if (serviceType === "House Cleaning") {
+    formData.append('Square Feet Range', squareFeetRange);
+    formData.append('Bedrooms', bedrooms);
+  } else {
+    formData.append('Square Feet', airbnbSquareFeet);
+    formData.append('Laundry', airbnbLaundry);
+    formData.append('Beds', airbnbBeds);
+    formData.append('Units', airbnbUnits);
+  }
+  
+  formData.append('Bathrooms', bathrooms);
+  
+  // Add-ons
+  const addOnsList = [];
+  if (addOns.fridge) addOnsList.push('Inside Fridge');
+  if (addOns.oven) addOnsList.push('Inside Oven');
+  if (addOns.microwave) addOnsList.push('Inside Microwave');
+  if (addOns.deepClean > 0) addOnsList.push(`Deep Clean +${addOns.deepClean}hr`);
+  if (addOns.linens > 0) addOnsList.push(`${addOns.linens} Linen Set(s)`);
+  if (addOns.dishes) addOnsList.push('Clean Dishes');
+  if (addOns.windows > 0) addOnsList.push(`${addOns.windows} Window(s)`);
+  if (addOns.pets > 0) addOnsList.push(`${addOns.pets} Pet(s)`);
+  if (addOns.baseTrimFeet > 0) addOnsList.push(`Base Trim (${addOns.baseTrimFeet} ft)`);
+  formData.append('Add-Ons', addOnsList.join(', ') || 'None');
+  
+  formData.append('Key Areas', keyAreas || 'None specified');
+  formData.append('Additional Notes', additionalNotes || 'None');
+  formData.append('Preferred Day 1', preferredDay1 || 'Not specified');
+  formData.append('Preferred Day 2', preferredDay2 || 'Not specified');
+  formData.append('Preferred Times', preferredTimes.join(', ') || 'Any time');
+  
+  // Pricing
+  formData.append('Subtotal', `$${calculateSubtotal().toFixed(2)}`);
+  formData.append('Discount', `-$${getDiscount().toFixed(2)}`);
+  formData.append('TOTAL PRICE', `$${calculateTotal().toFixed(2)}`);
+
+  try {
+    // Send to FormSubmit
+    await fetch('https://formsubmit.co/AkCleaningSuCasa@gmail.com', {
+      method: 'POST',
+      body: formData,
     });
-console.log("✅ Data sent to Zapier!");
-console.log(
-  "Note: With no-cors mode, we cannot see the response, but data was sent."
-);
-} catch (error) {
-console.error("❌ Zapier webhook error:", error);
-console.error("Error details:", error.message);
-}
-console.log("=== BOOKING COMPLETE ===");
-// Show success modal instead of alert
-setShowSuccessModal(true);
+
+    // Show success modal
+    setShowSuccessModal(true);
+  } catch (error) {
+    console.error('Submission error:', error);
+    alert('There was an error submitting your booking. Please try again or call us directly.');
+  }
 };
 return (
   <div
