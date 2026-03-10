@@ -544,8 +544,70 @@ input:focus, textarea:focus, select:focus {
   0 0 30px rgba(6, 182, 212, 0.4),
   0 0 40px rgba(6, 182, 212, 0.2);
 }
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  .main-container {
+    grid-template-columns: 1fr !important;
+    gap: 20px !important;
+  }
+  
+  .price-sidebar {
+    position: relative !important;
+    top: 0 !important;
+    max-height: none !important;
+    order: -1;
+  }
+  
+  .form-card {
+    padding: 30px 20px !important;
+  }
+  
+  .form-header {
+    padding: 30px 20px !important;
+  }
+  
+  .service-grid-2 {
+    grid-template-columns: 1fr !important;
+    gap: 15px !important;
+  }
+  
+  .service-grid-4 {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
+  }
+  
+  .address-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  
+  .button-group {
+    flex-direction: column !important;
+  }
+  
+  .button-group button {
+    width: 100% !important;
+  }
+  
+  .square-feet-grid {
+    grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
+  }
+  
+  .addons-grid {
+    grid-template-columns: 1fr !important;
+    gap: 12px !important;
+  }
+  
+  .time-slots-grid {
+    grid-template-columns: 1fr !important;
+    gap: 10px !important;
+  }
+}
 `}</style>
 <div
+className="main-container"
 style={{
     maxWidth: "1400px",
     margin: "0 auto",
@@ -568,6 +630,7 @@ style={{
 >
 {/* Header with Custom Animated Title */}
 <div
+className="form-header"
 style={{
     background: "linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%)",
     padding: step === 1 ? "50px 30px" : "30px",
@@ -988,6 +1051,7 @@ style={{
 />
 {/* City, State, Zip */}
 <div
+className="address-grid"
 style={{
     display: "grid",
     gridTemplateColumns: "1fr 1fr 1fr",
@@ -1077,6 +1141,7 @@ style={{
 Service Type *
 </label>
 <div
+className="service-grid-2"
 style={{
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
@@ -1366,6 +1431,7 @@ style={{
   Home Size *
   </label>
   <div
+  className="square-feet-grid"
   style={{
       display: "grid",
       gridTemplateColumns:
@@ -1816,6 +1882,7 @@ style={{
 </p>
 </div>
 <div
+className="button-group"
 style={{ display: "flex", gap: "15px", marginTop: "40px" }}
 >
 <button
@@ -1941,6 +2008,7 @@ style={{
 )}
 {/* Add-ons Grid - CONDITIONAL BASED ON SERVICE TYPE */}
 <div
+className="addons-grid"
 style={{
     display: "grid",
     gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))",
@@ -2796,6 +2864,7 @@ style={{
 Preferred Time(s)
 </label>
 <div
+className="time-slots-grid"
 style={{
     display: "grid",
     gridTemplateColumns:
@@ -2835,7 +2904,7 @@ style={{
   ))}
 </div>
 </div>
-<div style={{ display: "flex", gap: "15px" }}>
+<div className="button-group" style={{ display: "flex", gap: "15px" }}>
 <button
 onClick={() => {
   setStep(2);
@@ -2944,7 +3013,7 @@ Terms & Conditions
 {/* Price Sidebar */}
 {(step === 2 || step === 3) && (
     <div
-    className="fade-in-up"
+    className="fade-in-up price-sidebar"
     style={{
         position: "sticky",
         top: "20px",
