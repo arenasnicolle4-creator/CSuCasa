@@ -7,11 +7,8 @@ import {
   Bath,
   Bed,
   Lightbulb,
-  PawPrint,
-  Ruler,
   MessageSquare,
   Clock,
-  DollarSign,
 } from "lucide-react";
 // ===== CONFIGURATION =====
 // Google Places API Key - for address autocomplete
@@ -405,40 +402,6 @@ const handleContinueToAddOns = () => {
 };
 const handleSubmit = async () => {
   const priceBreakdown = getPriceBreakdown();
-  const bookingData = {
-    firstName,
-    lastName,
-    phone,
-    email,
-    address,
-    address2,
-    city,
-    state,
-    zip,
-    fullAddress: `${address}${
-      address2 ? ", " + address2 : ""
-    }, ${city}, ${state} ${zip}`.trim(),
-  serviceType,
-  frequency,
-  squareFeetRange,
-  airbnbSquareFeet,
-  airbnbLaundry,
-  airbnbBeds,
-  airbnbUnits,
-  bedrooms,
-  bathrooms,
-  addOns,
-  keyAreas,
-  additionalNotes,
-  preferredDay1,
-  preferredDay2,
-  preferredTimes,
-  priceBreakdown: priceBreakdown,
-  subtotal: calculateSubtotal().toFixed(2),
-  discount: getDiscount().toFixed(2),
-  totalPrice: calculateTotal().toFixed(2),
-  timestamp: new Date().toISOString(),
-};
 
   // Create email body with all booking details
   const emailSubject = "NEW BOOKING REQUEST - Cleaning Su Casa";
