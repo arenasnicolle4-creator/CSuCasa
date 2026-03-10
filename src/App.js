@@ -13,8 +13,7 @@ import {
 // ===== CONFIGURATION =====
 // Google Places API Key - for address autocomplete
 const GOOGLE_PLACES_API_KEY = "AIzaSyB18lv_Rulnv7jjFrM0PP57bCLO4U4_A_I";
-// Business email for booking requests
-const BUSINESS_EMAIL = "AkCleaningSuCasa@gmail.com";
+
 export default function App() {
   const formTopRef = useRef(null);
   const addressInputRef = useRef(null);
