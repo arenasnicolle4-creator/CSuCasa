@@ -547,34 +547,40 @@ input:focus, textarea:focus, select:focus {
     display: none !important;
   }
   
-  /* Make grid single column on mobile */
+  /* Make main grid single column on mobile with bottom padding for sticky price */
   .mobile-responsive-grid {
     grid-template-columns: 1fr !important;
+    padding-bottom: 450px !important;
   }
   
-  /* Service type and other grids to single column */
+  /* Service Type cards - keep 2 columns but adjust sizing */
   .service-grid-2col {
-    grid-template-columns: 1fr !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 12px !important;
   }
   
-  /* Address grid to single column */
+  /* City/State/ZIP - make full width on mobile */
   .address-3col {
     grid-template-columns: 1fr !important;
+    gap: 12px !important;
   }
   
   /* Square feet to 2 columns */
   .sqft-grid {
     grid-template-columns: 1fr 1fr !important;
+    gap: 10px !important;
   }
   
   /* Add-ons to single column */
   .addons-grid {
     grid-template-columns: 1fr !important;
+    gap: 12px !important;
   }
   
   /* Time slots to single column */
   .time-grid {
     grid-template-columns: 1fr !important;
+    gap: 10px !important;
   }
   
   /* Buttons stack vertically */
@@ -584,6 +590,43 @@ input:focus, textarea:focus, select:focus {
   
   .button-row button {
     width: 100% !important;
+  }
+  
+  /* PRICE SIDEBAR - STICKY AT BOTTOM WITH TOTAL FIRST */
+  .mobile-responsive-grid > div:nth-child(2) {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    z-index: 1000 !important;
+    max-height: 60vh !important;
+    width: 100vw !important;
+  }
+  
+  .mobile-responsive-grid > div:nth-child(2) > div {
+    border-radius: 20px 20px 0 0 !important;
+    display: flex !important;
+    flex-direction: column-reverse !important;
+  }
+  
+  /* Move total section to top */
+  .mobile-responsive-grid > div:nth-child(2) > div > div:last-child {
+    order: 1 !important;
+    border-top: none !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
+  }
+  
+  /* Breakdown section below total */
+  .mobile-responsive-grid > div:nth-child(2) > div > div:nth-child(2) {
+    order: 2 !important;
+    max-height: 200px !important;
+  }
+  
+  /* Header at bottom */
+  .mobile-responsive-grid > div:nth-child(2) > div > div:first-child {
+    order: 3 !important;
+    border-bottom: none !important;
+    border-top: 1px solid rgba(255, 255, 255, 0.1) !important;
   }
 }
 `}</style>
@@ -1031,6 +1074,7 @@ style={{
 />
 {/* City, State, Zip */}
 <div
+className="address-3col"
 style={{
     display: "grid",
     gridTemplateColumns: "1fr 1fr 1fr",
@@ -1120,6 +1164,7 @@ style={{
 Service Type *
 </label>
 <div
+className="service-grid-2col"
 style={{
     display: "grid",
     gridTemplateColumns: "1fr 1fr",
