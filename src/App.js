@@ -549,14 +549,41 @@ input:focus, textarea:focus, select:focus {
 @media (max-width: 768px) {
   .main-container {
     grid-template-columns: 1fr !important;
-    gap: 20px !important;
+    gap: 0 !important;
+    padding-bottom: 280px !important;
   }
   
   .price-sidebar {
-    position: relative !important;
-    top: 0 !important;
-    max-height: none !important;
-    order: -1;
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    top: auto !important;
+    max-height: 60vh !important;
+    z-index: 1000;
+    margin: 0 !important;
+  }
+  
+  .price-sidebar > div {
+    border-radius: 20px 20px 0 0 !important;
+    max-height: 60vh;
+  }
+  
+  /* Mobile pricing order: Total -> Discount -> Subtotal -> Line Items */
+  .price-sidebar > div > div {
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .price-breakdown-scroll {
+    order: 2;
+    max-height: 200px !important;
+  }
+  
+  .price-total-section {
+    order: 1;
+    border-top: none !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.2) !important;
   }
   
   .form-card {
@@ -584,6 +611,7 @@ input:focus, textarea:focus, select:focus {
   
   .button-group {
     flex-direction: column !important;
+    margin-bottom: 20px !important;
   }
   
   .button-group button {
@@ -3164,6 +3192,7 @@ ${calculateSubtotal().toFixed(2)}
 )}
 </div>
 <div
+className="price-total-section"
 style={{
     padding: "25px",
     background:
