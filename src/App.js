@@ -3262,32 +3262,6 @@ ${calculateTotal().toFixed(2)}
 </div>
 </div>
 </div>
-<div
-style={{
-    marginTop: "20px",
-    padding: "20px",
-    background: "white",
-    borderRadius: "20px",
-    textAlign: "center",
-    boxShadow: "0 15px 40px rgba(0, 0, 0, 0.1)",
-    border: "1px solid rgba(12, 74, 110, 0.1)",
-  }}
->
-<div style={{ fontSize: "36px", marginBottom: "12px" }}>🛡️</div>
-<div
-style={{
-    fontSize: "13px",
-    color: "#0c4a6e",
-    fontWeight: "800",
-    lineHeight: "1.6",
-    letterSpacing: "0.3px",
-  }}
->
-100% SATISFACTION
-<br />
-GUARANTEED
-</div>
-</div>
 </div>
 )}
 </div>
