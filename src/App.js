@@ -661,6 +661,26 @@ input:focus, textarea:focus, select:focus {
     display: none !important;
   }
 }
+
+/* Iframe embedding optimization - full width, no side gaps */
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.mobile-responsive-grid {
+  max-width: 100% !important;
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+}
+
+/* On larger screens in iframe, limit width but keep centered */
+@media (min-width: 1440px) {
+  .mobile-responsive-grid {
+    max-width: 1400px !important;
+    margin: 0 auto !important;
+  }
+}
 `}</style>
 <div
 className="mobile-responsive-grid"
