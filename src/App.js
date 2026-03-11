@@ -494,8 +494,6 @@ return (
         radial-gradient(circle 1px at center, rgba(255,255,255,0.07) 0%, transparent 100%)
       `,
       backgroundSize: "100% 100%, 100% 100%, 100% 100%, 100% 100%, 26px 26px",
-      position: "relative",
-      overflowX: "hidden",
       padding: "20px",
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
     }}
@@ -787,7 +785,17 @@ body {
 }
 `}</style>
 
-{/* Animated Background Elements */}
+{/* Animated Background Elements - Fixed Container */}
+<div style={{
+  position: "fixed",
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  overflow: "hidden",
+  pointerEvents: "none",
+  zIndex: 0
+}}>
 <div className="hero-orb hero-orb-1"></div>
 <div className="hero-orb hero-orb-2"></div>
 <div className="hero-orb hero-orb-3"></div>
@@ -811,6 +819,7 @@ body {
   <div className="dot-p" style={{width:"3px",height:"3px",left:"33%",bottom:"22%",animationDuration:"10s",animationDelay:"2s"}}></div>
   <div className="dot-p" style={{width:"4px",height:"4px",left:"82%",bottom:"28%",animationDuration:"7.5s",animationDelay:"3s"}}></div>
 </div>
+</div>
 
 <div
 className="mobile-responsive-grid"
@@ -822,6 +831,8 @@ style={{
     gridTemplateColumns: step === 1 ? "1fr" : "1fr 380px",
     gap: "30px",
     alignItems: "start",
+    position: "relative",
+    zIndex: 1,
   }}
 >
 {/* Main Form */}
