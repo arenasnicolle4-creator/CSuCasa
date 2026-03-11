@@ -570,11 +570,6 @@ input:focus, textarea:focus, select:focus {
     display: none !important;
   }
   
-  /* Hide desktop price sidebar on mobile */
-  .price-sidebar {
-    display: none !important;
-  }
-  
   /* Show mobile price sticky at bottom */
   .mobile-price-sticky {
     display: block !important;
@@ -675,13 +670,6 @@ body {
 @media (min-width: 769px) {
   .mobile-price-sticky {
     display: none !important;
-  }
-  
-  /* Ensure desktop price sidebar stays sticky */
-  .price-sidebar {
-    position: sticky !important;
-    top: 20px !important;
-    align-self: flex-start !important;
   }
   
   /* Desktop iframe embedding - full width */
@@ -3240,7 +3228,7 @@ Terms & Conditions
 {/* Price Sidebar */}
 {(step === 2 || step === 3) && (
     <div
-    className="fade-in-up price-sidebar"
+    className="fade-in-up"
     style={{
         position: "sticky",
         top: "20px",
