@@ -586,14 +586,14 @@ input:focus, textarea:focus, select:focus {
     width: 100vw !important;
   }
   
-  /* Limit mobile price height to max 45vh so it doesn't take over screen */
+  /* Limit mobile price height so users can see more selections */
   .mobile-price-sticky > div {
-    max-height: 45vh !important;
+    max-height: 35vh !important;
   }
   
   /* Make breakdown scrollable with smaller max height */
   .mobile-price-sticky .price-breakdown-items {
-    max-height: 150px !important;
+    max-height: 120px !important;
     overflow-y: auto !important;
   }
   
