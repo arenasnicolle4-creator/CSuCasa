@@ -495,7 +495,7 @@ return (
       `,
       backgroundSize: "100% 100%, 100% 100%, 100% 100%, 100% 100%, 26px 26px",
       position: "relative",
-      overflow: "hidden",
+      overflowX: "hidden",
       padding: "20px",
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
     }}
@@ -834,6 +834,7 @@ className="mobile-responsive-grid"
 style={{
     maxWidth: "1400px",
     margin: "0 auto",
+    padding: "30px 20px",
     display: "grid",
     gridTemplateColumns: step === 1 ? "1fr" : "1fr 380px",
     gap: "30px",
