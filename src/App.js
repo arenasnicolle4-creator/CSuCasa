@@ -665,7 +665,13 @@ input:focus, textarea:focus, select:focus {
   }
 }
 
-/* Desktop - hide mobile price */
+/* Iframe embedding optimization - full width, no side gaps */
+body {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Desktop - hide mobile price and ensure sticky works */
 @media (min-width: 769px) {
   .mobile-price-sticky {
     display: none !important;
@@ -677,18 +683,13 @@ input:focus, textarea:focus, select:focus {
     top: 20px !important;
     align-self: flex-start !important;
   }
-}
-
-/* Iframe embedding optimization - full width, no side gaps */
-body {
-  margin: 0 !important;
-  padding: 0 !important;
-}
-
-.mobile-responsive-grid {
-  max-width: 100% !important;
-  padding-left: 20px !important;
-  padding-right: 20px !important;
+  
+  /* Desktop iframe embedding - full width */
+  .mobile-responsive-grid {
+    max-width: 100% !important;
+    padding-left: 20px !important;
+    padding-right: 20px !important;
+  }
 }
 
 /* On larger screens in iframe, limit width but keep centered */
