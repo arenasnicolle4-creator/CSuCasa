@@ -797,12 +797,6 @@ body {
     opacity: 0;
   }
 }
-
-/* Ensure content is above animated background */
-.mobile-responsive-grid {
-  position: relative;
-  z-index: 1;
-}
 `}</style>
 
 {/* Animated Background Elements */}
