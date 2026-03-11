@@ -588,12 +588,12 @@ input:focus, textarea:focus, select:focus {
   
   /* Limit mobile price height so users can see more selections */
   .mobile-price-sticky > div {
-    max-height: 35vh !important;
+    max-height: 37vh !important;
   }
   
   /* Make breakdown scrollable with smaller max height */
   .mobile-price-sticky .price-breakdown-items {
-    max-height: 120px !important;
+    max-height: 130px !important;
     overflow-y: auto !important;
   }
   
