@@ -485,7 +485,17 @@ return (
   ref={formTopRef}
   style={{
       minHeight: "100vh",
-      background: "#ffffff",
+      backgroundColor: "#020c1f",
+      backgroundImage: `
+        radial-gradient(circle at 20% 30%, rgba(5,53,116,0.55) 0%, transparent 45%),
+        radial-gradient(circle at 80% 68%, rgba(10,79,168,0.45) 0%, transparent 40%),
+        radial-gradient(circle at 55% 8%, rgba(93,235,241,0.06) 0%, transparent 30%),
+        radial-gradient(ellipse at 5% 88%, rgba(5,53,116,0.4) 0%, transparent 40%),
+        radial-gradient(circle 1px at center, rgba(255,255,255,0.07) 0%, transparent 100%)
+      `,
+      backgroundSize: "100% 100%, 100% 100%, 100% 100%, 100% 100%, 26px 26px",
+      position: "relative",
+      overflow: "hidden",
       padding: "20px",
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
     }}
@@ -660,6 +670,13 @@ input:focus, textarea:focus, select:focus {
   .mobile-price-sticky {
     display: none !important;
   }
+  
+  /* Ensure desktop price sidebar stays sticky */
+  .price-sidebar {
+    position: sticky !important;
+    top: 20px !important;
+    align-self: flex-start !important;
+  }
 }
 
 /* Iframe embedding optimization - full width, no side gaps */
@@ -681,7 +698,137 @@ body {
     margin: 0 auto !important;
   }
 }
+
+/* Animated background elements */
+.hero-orb {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.hero-orb-1 {
+  width: 600px;
+  height: 600px;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: radial-gradient(circle, rgba(5,53,116,0.18) 0%, transparent 70%);
+  animation: porb 7s ease-in-out infinite;
+}
+
+.hero-orb-2 {
+  width: 320px;
+  height: 320px;
+  top: 8%;
+  right: 5%;
+  background: radial-gradient(circle, rgba(5,53,116,0.14) 0%, transparent 70%);
+  animation: porb2 9s ease-in-out infinite reverse;
+}
+
+.hero-orb-3 {
+  width: 220px;
+  height: 220px;
+  bottom: 12%;
+  left: 5%;
+  background: radial-gradient(circle, rgba(93,235,241,0.09) 0%, transparent 70%);
+  animation: porb2 6s ease-in-out infinite;
+}
+
+@keyframes porb {
+  0%, 100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.12);
+    opacity: 0.7;
+  }
+}
+
+@keyframes porb2 {
+  0%, 100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.18);
+    opacity: 0.6;
+  }
+}
+
+.hero-rings {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  z-index: 0;
+}
+
+.hero-dots {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.dot-p {
+  position: absolute;
+  border-radius: 50%;
+  background: #7dd3fc;
+  opacity: 0.2;
+  animation: pdrift linear infinite;
+}
+
+@keyframes pdrift {
+  0% {
+    transform: translateY(0) rotate(0deg);
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.22;
+  }
+  90% {
+    opacity: 0.12;
+  }
+  100% {
+    transform: translateY(-110px) rotate(360deg);
+    opacity: 0;
+  }
+}
+
+/* Ensure content is above animated background */
+.mobile-responsive-grid {
+  position: relative;
+  z-index: 1;
+}
 `}</style>
+
+{/* Animated Background Elements */}
+<div className="hero-orb hero-orb-1"></div>
+<div className="hero-orb hero-orb-2"></div>
+<div className="hero-orb hero-orb-3"></div>
+
+<div className="hero-rings">
+  <svg width="520" height="520" style={{position:"absolute",top:"-90px",left:"30%",opacity:0.45}} viewBox="0 0 520 520">
+    <circle cx="260" cy="260" r="220" fill="none" stroke="#053574" strokeWidth="1"/>
+    <circle cx="260" cy="260" r="175" fill="none" stroke="#053574" strokeWidth="0.6"/>
+    <circle cx="260" cy="260" r="130" fill="none" stroke="#053574" strokeWidth="0.6"/>
+  </svg>
+  <svg width="280" height="280" style={{position:"absolute",bottom:"-50px",right:"5%",opacity:0.35}} viewBox="0 0 280 280">
+    <circle cx="140" cy="140" r="115" fill="none" stroke="#053574" strokeWidth="1"/>
+    <circle cx="140" cy="140" r="75" fill="none" stroke="#053574" strokeWidth="0.6"/>
+  </svg>
+</div>
+
+<div className="hero-dots">
+  <div className="dot-p" style={{width:"4px",height:"4px",left:"22%",bottom:"12%",animationDuration:"7s",animationDelay:"0s"}}></div>
+  <div className="dot-p" style={{width:"3px",height:"3px",left:"48%",bottom:"18%",animationDuration:"9s",animationDelay:"1.5s"}}></div>
+  <div className="dot-p" style={{width:"5px",height:"5px",left:"72%",bottom:"9%",animationDuration:"8s",animationDelay:"0.7s"}}></div>
+  <div className="dot-p" style={{width:"3px",height:"3px",left:"33%",bottom:"22%",animationDuration:"10s",animationDelay:"2s"}}></div>
+  <div className="dot-p" style={{width:"4px",height:"4px",left:"82%",bottom:"28%",animationDuration:"7.5s",animationDelay:"3s"}}></div>
+</div>
+
 <div
 className="mobile-responsive-grid"
 style={{
@@ -695,19 +842,30 @@ style={{
 >
 {/* Main Form */}
 <div
+className="form-card-animated"
 style={{
-    background:
-    "linear-gradient(135deg, #0c4a6e 0%, #0369a1 50%, #0284c7 100%)",
+    backgroundColor: "#020c1f",
+    backgroundImage: `
+      radial-gradient(circle at 20% 30%, rgba(5,53,116,0.55) 0%, transparent 45%),
+      radial-gradient(circle at 80% 68%, rgba(10,79,168,0.45) 0%, transparent 40%),
+      radial-gradient(circle at 55% 8%, rgba(93,235,241,0.06) 0%, transparent 30%),
+      radial-gradient(ellipse at 5% 88%, rgba(5,53,116,0.4) 0%, transparent 40%),
+      radial-gradient(circle 1px at center, rgba(255,255,255,0.07) 0%, transparent 100%)
+    `,
+    backgroundSize: "100% 100%, 100% 100%, 100% 100%, 100% 100%, 26px 26px",
     borderRadius: "32px",
     overflow: "hidden",
-    boxShadow: "0 30px 80px rgba(12, 74, 110, 0.3)",
-    border: "1px solid rgba(255, 255, 255, 0.1)",
+    boxShadow: "0 30px 80px rgba(0, 0, 0, 0.5)",
+    border: "1px solid rgba(93, 235, 241, 0.2)",
+    position: "relative",
   }}
 >
 {/* Header with Custom Animated Title */}
 <div
 style={{
-    background: "linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%)",
+    backgroundColor: "rgba(2, 12, 31, 0.4)",
+    backdropFilter: "blur(10px)",
+    borderBottom: "1px solid rgba(93, 235, 241, 0.2)",
     padding: step === 1 ? "50px 30px" : "30px",
     textAlign: "center",
     position: "relative",
@@ -3098,11 +3256,19 @@ Terms & Conditions
   >
   <div
   style={{
-      background: "linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%)",
+      backgroundColor: "#020c1f",
+      backgroundImage: `
+        radial-gradient(circle at 20% 30%, rgba(5,53,116,0.55) 0%, transparent 45%),
+        radial-gradient(circle at 80% 68%, rgba(10,79,168,0.45) 0%, transparent 40%),
+        radial-gradient(circle at 55% 8%, rgba(93,235,241,0.06) 0%, transparent 30%),
+        radial-gradient(ellipse at 5% 88%, rgba(5,53,116,0.4) 0%, transparent 40%),
+        radial-gradient(circle 1px at center, rgba(255,255,255,0.07) 0%, transparent 100%)
+      `,
+      backgroundSize: "100% 100%, 100% 100%, 100% 100%, 100% 100%, 26px 26px",
       borderRadius: "28px",
       overflow: "hidden",
-      boxShadow: "0 25px 70px rgba(12, 74, 110, 0.4)",
-      border: "1px solid rgba(255, 255, 255, 0.1)",
+      boxShadow: "0 25px 70px rgba(0, 0, 0, 0.6)",
+      border: "1px solid rgba(93, 235, 241, 0.2)",
       display: "flex",
       flexDirection: "column",
       maxHeight: "100%",
@@ -3260,9 +3426,9 @@ ${calculateSubtotal().toFixed(2)}
 <div
 style={{
     padding: "25px",
-    background:
-    "linear-gradient(135deg, #06b6d4 0%, #0ea5e9 100%)",
-    borderTop: "1px solid rgba(255, 255, 255, 0.2)",
+    background: "rgba(93, 235, 241, 0.15)",
+    backdropFilter: "blur(10px)",
+    borderTop: "1px solid rgba(93, 235, 241, 0.3)",
     boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.2)",
   }}
 >
@@ -3362,11 +3528,20 @@ GUARANTEED
 {(step === 2 || step === 3) && (
   <div className="mobile-price-sticky">
     <div style={{
-      background: "linear-gradient(135deg, #0c4a6e 0%, #0369a1 100%)",
+      backgroundColor: "#020c1f",
+      backgroundImage: `
+        radial-gradient(circle at 20% 30%, rgba(5,53,116,0.55) 0%, transparent 45%),
+        radial-gradient(circle at 80% 68%, rgba(10,79,168,0.45) 0%, transparent 40%),
+        radial-gradient(circle at 55% 8%, rgba(93,235,241,0.06) 0%, transparent 30%),
+        radial-gradient(ellipse at 5% 88%, rgba(5,53,116,0.4) 0%, transparent 40%),
+        radial-gradient(circle 1px at center, rgba(255,255,255,0.07) 0%, transparent 100%)
+      `,
+      backgroundSize: "100% 100%, 100% 100%, 100% 100%, 100% 100%, 26px 26px",
       borderRadius: "20px 20px 0 0",
       overflow: "hidden",
-      boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.3)",
-      border: "1px solid rgba(255, 255, 255, 0.1)",
+      boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.6)",
+      border: "1px solid rgba(93, 235, 241, 0.2)",
+      borderBottom: "none",
       maxHeight: "65vh",
       display: "flex",
       flexDirection: "column",
@@ -3374,8 +3549,9 @@ GUARANTEED
       {/* TOTAL SECTION - FIRST */}
       <div style={{
         padding: "20px 25px",
-        background: "linear-gradient(135deg, #06b6d4 0%, #0ea5e9 100%)",
-        borderBottom: "1px solid rgba(255, 255, 255, 0.2)",
+        background: "rgba(93, 235, 241, 0.15)",
+        borderBottom: "1px solid rgba(93, 235, 241, 0.3)",
+        backdropFilter: "blur(10px)",
       }}>
         <div style={{
           display: "flex",
