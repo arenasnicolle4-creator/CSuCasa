@@ -18,6 +18,16 @@ export default function App() {
   const addressInputRef = useRef(null);
   // Form state
   const [step, setStep] = useState(1);
+
+  const mobileBarRef = useRef(null);
+  const [mobileBarHeight, setMobileBarHeight] = useState(0);
+  useEffect(() => {
+    const el = mobileBarRef.current;
+    if (!el) return;
+    const ro = new ResizeObserver(() => setMobileBarHeight(el.offsetHeight));
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
@@ -496,6 +506,7 @@ return (
       backgroundSize: "100% 100%, 100% 100%, 100% 100%, 100% 100%, 26px 26px",
       padding: "20px",
       fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, sans-serif",
+      paddingBottom: mobileBarHeight ? mobileBarHeight + 20 : undefined,
     }}
 >
 <style>{`
@@ -598,7 +609,7 @@ input:focus, textarea:focus, select:focus {
   /* Make main grid single column on mobile with bottom padding for sticky price */
   .mobile-responsive-grid {
     grid-template-columns: 1fr !important;
-    padding-bottom: 320px !important;
+    
   }
   
   /* Service Type cards - keep 2 columns with better mobile styling */
@@ -670,6 +681,7 @@ body {
 }
 
 /* Desktop - hide mobile price and ensure sticky works */
+.mobile-price-sticky { display: none; }
 @media (min-width: 769px) {
   .mobile-price-sticky {
     display: none !important;
@@ -3526,177 +3538,43 @@ GUARANTEED
 
 {/* MOBILE-ONLY PRICE DISPLAY - STICKY AT BOTTOM */}
 {(step === 2 || step === 3) && (
-  <div className="mobile-price-sticky">
+  <div ref={mobileBarRef} className="mobile-price-sticky" style={{position:"fixed",bottom:0,left:0,right:0,zIndex:1000}}>
     <div style={{
-      backgroundColor: "#020c1f",
-      backgroundImage: `
-        radial-gradient(circle at 20% 30%, rgba(5,53,116,0.55) 0%, transparent 45%),
-        radial-gradient(circle at 80% 68%, rgba(10,79,168,0.45) 0%, transparent 40%),
-        radial-gradient(circle at 55% 8%, rgba(93,235,241,0.06) 0%, transparent 30%),
-        radial-gradient(ellipse at 5% 88%, rgba(5,53,116,0.4) 0%, transparent 40%),
-        radial-gradient(circle 1px at center, rgba(255,255,255,0.07) 0%, transparent 100%)
-      `,
-      backgroundSize: "100% 100%, 100% 100%, 100% 100%, 100% 100%, 26px 26px",
-      borderRadius: "20px 20px 0 0",
-      overflow: "hidden",
-      boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.6)",
-      border: "1px solid rgba(93, 235, 241, 0.2)",
-      borderBottom: "none",
-      maxHeight: "65vh",
-      display: "flex",
-      flexDirection: "column",
+      backgroundColor:"#020c1f",
+      backgroundImage:`radial-gradient(circle at 20% 30%, rgba(5,53,116,0.55) 0%, transparent 45%),radial-gradient(circle at 80% 68%, rgba(10,79,168,0.45) 0%, transparent 40%)`,
+      backgroundSize:"100% 100%, 100% 100%",
+      borderTop:"2px solid rgba(93,235,241,0.35)",
+      borderRadius:"16px 16px 0 0",
+      boxShadow:"0 -8px 30px rgba(0,0,0,0.5)",
     }}>
-      {/* TOTAL SECTION - FIRST */}
-      <div style={{
-        padding: "20px 25px",
-        background: "rgba(93, 235, 241, 0.15)",
-        borderBottom: "1px solid rgba(93, 235, 241, 0.3)",
-        backdropFilter: "blur(10px)",
-      }}>
-        <div style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-        }}>
-          <div style={{
-            color: "white",
-            fontWeight: "900",
-            fontSize: "16px",
-            letterSpacing: "1px",
-            textTransform: "uppercase",
-          }}>
-            Total
-          </div>
-          <div style={{
-            color: "white",
-            fontWeight: "900",
-            fontSize: "32px",
-            textShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
-          }}>
-            ${calculateTotal().toFixed(2)}
-          </div>
+      {/* Total row — always visible */}
+      <div style={{padding:"12px 20px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <div style={{color:"rgba(93,235,241,0.8)",fontSize:"11px",fontWeight:"700",letterSpacing:"1.5px",textTransform:"uppercase"}}>Estimate</div>
+          {getDiscount()>0&&<div style={{color:"#10b981",fontSize:"11px",fontWeight:"700",marginTop:"2px"}}>✓ Saving ${getDiscount().toFixed(2)}</div>}
+        </div>
+        <div style={{textAlign:"right"}}>
+          <div style={{color:"white",fontSize:"28px",fontWeight:"900",lineHeight:"1"}}>${calculateTotal().toFixed(2)}</div>
+          <div style={{color:"rgba(93,235,241,0.6)",fontSize:"10px",fontWeight:"600"}}>per visit</div>
         </div>
       </div>
-
-      {/* DISCOUNT (if applicable) */}
-      {getDiscount() > 0 && (
-        <div style={{
-          padding: "12px 25px",
-          background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-        }}>
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}>
-            <div style={{ color: "white", fontWeight: "800", fontSize: "14px" }}>
-              {serviceType === "House Cleaning" && (
-                <>
-                  {frequency === "every-week" && "WEEKLY (20%)"}
-                  {frequency === "bi-weekly" && "BI-WEEKLY (15%)"}
-                  {frequency === "every-3-weeks" && "3-WEEK (12%)"}
-                  {frequency === "every-4-weeks" && "4-WEEK (9%)"}
-                </>
-              )}
-              {serviceType === "Airbnb Cleaning" && "DISCOUNTS APPLIED"}
+      {/* Line items — hard capped, always scrollable */}
+      {getPriceBreakdown().length>0&&(
+        <div style={{borderTop:"1px solid rgba(93,235,241,0.15)",overflowY:"scroll",maxHeight:"120px",padding:"6px 20px 10px",WebkitOverflowScrolling:"touch"}}>
+          {getPriceBreakdown().map((item,i)=>(
+            <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"3px 0",fontSize:"12px",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
+              <span style={{color:"rgba(255,255,255,0.8)",fontWeight:"600",flex:1,marginRight:"8px"}}>{item.label}</span>
+              <span style={{color:"white",fontWeight:"700",flexShrink:0}}>${item.amount.toFixed(2)}</span>
             </div>
-            <div style={{ color: "white", fontWeight: "900", fontSize: "14px" }}>
-              -${getDiscount().toFixed(2)}
+          ))}
+          {getDiscount()>0&&(
+            <div style={{display:"flex",justifyContent:"space-between",padding:"5px 0 0",borderTop:"1px solid rgba(16,185,129,0.4)",marginTop:"3px"}}>
+              <span style={{color:"#10b981",fontSize:"12px",fontWeight:"800"}}>✓ Discount Applied</span>
+              <span style={{color:"#10b981",fontSize:"12px",fontWeight:"900"}}>-${getDiscount().toFixed(2)}</span>
             </div>
-          </div>
+          )}
         </div>
       )}
-
-      {/* SUBTOTAL */}
-      {getPriceBreakdown().length > 0 && (
-        <div style={{
-          padding: "12px 25px",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-        }}>
-          <div style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-          }}>
-            <div style={{
-              color: "#06b6d4",
-              fontWeight: "800",
-              fontSize: "14px",
-              textTransform: "uppercase",
-            }}>
-              Subtotal
-            </div>
-            <div style={{ color: "white", fontWeight: "900", fontSize: "14px" }}>
-              ${calculateSubtotal().toFixed(2)}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Price Disclaimer */}
-      <div style={{
-        padding: "10px 20px",
-        background: "rgba(255, 255, 255, 0.1)",
-        borderTop: "1px solid rgba(255, 255, 255, 0.1)",
-        borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-      }}>
-        <p style={{
-          color: "rgba(255, 255, 255, 0.85)",
-          fontSize: "10px",
-          margin: 0,
-          fontWeight: "600",
-          lineHeight: "1.3",
-          textAlign: "center",
-          fontStyle: "italic",
-        }}>
-          💡 Estimate only. Final price may vary.
-        </p>
-      </div>
-
-      {/* LINE ITEMS - SCROLLABLE */}
-      <div 
-        className="price-breakdown-items"
-        style={{
-        padding: "15px 25px",
-        overflowY: "auto",
-        maxHeight: "200px",
-      }}>
-        {getPriceBreakdown().length === 0 ? (
-          <div style={{
-            textAlign: "center",
-            padding: "20px",
-            color: "rgba(255, 255, 255, 0.5)",
-            fontSize: "13px",
-            fontWeight: "600",
-          }}>
-            Select services to see pricing
-          </div>
-        ) : (
-          getPriceBreakdown().map((item, index) => (
-            <div
-              key={index}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                padding: "8px 0",
-                borderBottom: index < getPriceBreakdown().length - 1 ? "1px solid rgba(255, 255, 255, 0.1)" : "none",
-                fontSize: "13px",
-              }}
-            >
-              <div style={{
-                color: "rgba(255, 255, 255, 0.8)",
-                fontWeight: "600",
-              }}>
-                {item.label}
-              </div>
-              <div style={{ color: "white", fontWeight: "800" }}>
-                ${item.amount.toFixed(2)}
-              </div>
-            </div>
-          ))
-        )}
-      </div>
     </div>
   </div>
 )}
