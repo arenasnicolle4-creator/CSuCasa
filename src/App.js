@@ -779,26 +779,12 @@ body {
 .dot-p {
   position: absolute;
   border-radius: 50%;
-  background: #7dd3fc;
-  opacity: 0.2;
-  animation: pdrift linear infinite;
+  animation: floatUp linear infinite;
 }
 
-@keyframes pdrift {
-  0% {
-    transform: translateY(0) rotate(0deg);
-    opacity: 0;
-  }
-  10% {
-    opacity: 0.22;
-  }
-  90% {
-    opacity: 0.12;
-  }
-  100% {
-    transform: translateY(-110px) rotate(360deg);
-    opacity: 0;
-  }
+@keyframes floatUp {
+  0%, 100% { transform: translateY(0); opacity: 0.5; }
+  50% { transform: translateY(-22px); opacity: 1; }
 }
 `}</style>
 
@@ -818,23 +804,24 @@ body {
 <div className="hero-orb hero-orb-3"></div>
 
 <div className="hero-rings">
-  <svg width="520" height="520" style={{position:"absolute",top:"-90px",left:"30%",opacity:0.45}} viewBox="0 0 520 520">
-    <circle cx="260" cy="260" r="220" fill="none" stroke="#053574" strokeWidth="1"/>
-    <circle cx="260" cy="260" r="175" fill="none" stroke="#053574" strokeWidth="0.6"/>
-    <circle cx="260" cy="260" r="130" fill="none" stroke="#053574" strokeWidth="0.6"/>
+  <svg width="560" height="560" style={{position:"absolute",top:"-100px",left:"28%",opacity:0.5}} viewBox="0 0 560 560">
+    <circle cx="280" cy="280" r="240" fill="none" stroke="rgba(93,235,241,0.5)" strokeWidth="1.8"/>
+    <circle cx="280" cy="280" r="190" fill="none" stroke="rgba(14,165,233,0.3)" strokeWidth="1.2"/>
+    <circle cx="280" cy="280" r="140" fill="none" stroke="rgba(93,235,241,0.35)" strokeWidth="1.2"/>
+    <circle cx="280" cy="280" r="90" fill="none" stroke="rgba(14,165,233,0.2)" strokeWidth="0.8"/>
   </svg>
-  <svg width="280" height="280" style={{position:"absolute",bottom:"-50px",right:"5%",opacity:0.35}} viewBox="0 0 280 280">
-    <circle cx="140" cy="140" r="115" fill="none" stroke="#053574" strokeWidth="1"/>
-    <circle cx="140" cy="140" r="75" fill="none" stroke="#053574" strokeWidth="0.6"/>
+  <svg width="300" height="300" style={{position:"absolute",bottom:"-60px",right:"4%",opacity:0.45}} viewBox="0 0 300 300">
+    <circle cx="150" cy="150" r="125" fill="none" stroke="rgba(93,235,241,0.45)" strokeWidth="1.8"/>
+    <circle cx="150" cy="150" r="80" fill="none" stroke="rgba(14,165,233,0.3)" strokeWidth="1.2"/>
   </svg>
 </div>
 
 <div className="hero-dots">
-  <div className="dot-p" style={{width:"4px",height:"4px",left:"22%",bottom:"12%",animationDuration:"7s",animationDelay:"0s"}}></div>
-  <div className="dot-p" style={{width:"3px",height:"3px",left:"48%",bottom:"18%",animationDuration:"9s",animationDelay:"1.5s"}}></div>
-  <div className="dot-p" style={{width:"5px",height:"5px",left:"72%",bottom:"9%",animationDuration:"8s",animationDelay:"0.7s"}}></div>
-  <div className="dot-p" style={{width:"3px",height:"3px",left:"33%",bottom:"22%",animationDuration:"10s",animationDelay:"2s"}}></div>
-  <div className="dot-p" style={{width:"4px",height:"4px",left:"82%",bottom:"28%",animationDuration:"7.5s",animationDelay:"3s"}}></div>
+  <div className="dot-p" style={{width:"7px",height:"7px",left:"22%",bottom:"12%",animationDuration:"7s",animationDelay:"0s",background:"rgba(93,235,241,0.6)",boxShadow:"0 0 10px rgba(93,235,241,0.5)"}}></div>
+  <div className="dot-p" style={{width:"5px",height:"5px",left:"48%",bottom:"18%",animationDuration:"9s",animationDelay:"1.5s",background:"rgba(14,165,233,0.5)",boxShadow:"0 0 8px rgba(14,165,233,0.5)"}}></div>
+  <div className="dot-p" style={{width:"8px",height:"8px",left:"72%",bottom:"9%",animationDuration:"8s",animationDelay:"0.7s",background:"rgba(93,235,241,0.55)",boxShadow:"0 0 12px rgba(93,235,241,0.5)"}}></div>
+  <div className="dot-p" style={{width:"6px",height:"6px",left:"33%",bottom:"22%",animationDuration:"10s",animationDelay:"2s",background:"rgba(14,165,233,0.45)",boxShadow:"0 0 10px rgba(14,165,233,0.4)"}}></div>
+  <div className="dot-p" style={{width:"6px",height:"6px",left:"82%",bottom:"28%",animationDuration:"7.5s",animationDelay:"3s",background:"rgba(93,235,241,0.5)",boxShadow:"0 0 10px rgba(93,235,241,0.5)"}}></div>
 </div>
 </div>
 
@@ -884,6 +871,20 @@ style={{
     overflow: "hidden",
   }}
 >
+{/* Decorative rings inside header */}
+<svg width="220" height="220" style={{position:"absolute",top:"-60px",left:"-40px",opacity:0.2,pointerEvents:"none"}} viewBox="0 0 220 220">
+  <circle cx="110" cy="110" r="100" fill="none" stroke="rgba(93,235,241,0.8)" strokeWidth="1.2"/>
+  <circle cx="110" cy="110" r="70" fill="none" stroke="rgba(125,211,252,0.5)" strokeWidth="0.8"/>
+</svg>
+<svg width="180" height="180" style={{position:"absolute",bottom:"-50px",right:"-30px",opacity:0.2,pointerEvents:"none"}} viewBox="0 0 180 180">
+  <circle cx="90" cy="90" r="80" fill="none" stroke="rgba(93,235,241,0.8)" strokeWidth="1.2"/>
+  <circle cx="90" cy="90" r="52" fill="none" stroke="rgba(125,211,252,0.5)" strokeWidth="0.8"/>
+</svg>
+{/* Floating dots */}
+<div style={{position:"absolute",width:"5px",height:"5px",borderRadius:"50%",background:"rgba(125,211,252,0.7)",top:"20%",left:"12%",boxShadow:"0 0 6px rgba(93,235,241,0.6)",pointerEvents:"none"}}/>
+<div style={{position:"absolute",width:"4px",height:"4px",borderRadius:"50%",background:"rgba(93,235,241,0.6)",top:"60%",left:"80%",boxShadow:"0 0 5px rgba(93,235,241,0.5)",pointerEvents:"none"}}/>
+<div style={{position:"absolute",width:"3px",height:"3px",borderRadius:"50%",background:"rgba(125,211,252,0.5)",top:"75%",left:"25%",boxShadow:"0 0 4px rgba(93,235,241,0.4)",pointerEvents:"none"}}/>
+<div style={{position:"absolute",width:"4px",height:"4px",borderRadius:"50%",background:"rgba(93,235,241,0.5)",top:"30%",left:"60%",boxShadow:"0 0 5px rgba(93,235,241,0.4)",pointerEvents:"none"}}/>
 <div
 style={{
     position: "absolute",
@@ -3291,8 +3292,20 @@ style={{
     padding: "25px",
     textAlign: "center",
     borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+    position: "relative",
+    overflow: "hidden",
   }}
 >
+{/* Decorative rings inside sidebar header */}
+<svg width="160" height="160" style={{position:"absolute",top:"-40px",right:"-30px",opacity:0.2,pointerEvents:"none"}} viewBox="0 0 160 160">
+  <circle cx="80" cy="80" r="72" fill="none" stroke="rgba(93,235,241,0.8)" strokeWidth="1.2"/>
+  <circle cx="80" cy="80" r="52" fill="none" stroke="rgba(125,211,252,0.5)" strokeWidth="0.8"/>
+  <circle cx="80" cy="80" r="34" fill="none" stroke="rgba(93,235,241,0.4)" strokeWidth="0.6"/>
+</svg>
+<div style={{position:"absolute",width:"4px",height:"4px",borderRadius:"50%",background:"rgba(125,211,252,0.7)",top:"18%",right:"18%",boxShadow:"0 0 5px rgba(93,235,241,0.6)",pointerEvents:"none"}}/>
+<div style={{position:"absolute",width:"3px",height:"3px",borderRadius:"50%",background:"rgba(93,235,241,0.6)",top:"65%",right:"8%",boxShadow:"0 0 4px rgba(93,235,241,0.5)",pointerEvents:"none"}}/>
+<div style={{position:"absolute",width:"5px",height:"5px",borderRadius:"50%",background:"rgba(125,211,252,0.5)",bottom:"15%",left:"8%",boxShadow:"0 0 5px rgba(93,235,241,0.4)",pointerEvents:"none"}}/>
+<div style={{position:"relative",zIndex:1}}>
 <div
 style={{
     fontSize: "14px",
@@ -3304,6 +3317,7 @@ style={{
   }}
 >
 Price Breakdown
+</div>
 </div>
 </div>
 <div
