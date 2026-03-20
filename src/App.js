@@ -2969,7 +2969,7 @@ style={{
   Preferred Start Date(s)
 </label>
 <p style={{ fontSize:"13px", color:"rgba(255,255,255,0.6)", fontWeight:"600", marginTop:"-10px", marginBottom:"16px" }}>Select your first choice and a backup date.</p>
-<div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"15px" }}>
+<div style={{ display:"grid", gridTemplateColumns:"1fr", gap:"15px" }}>
   <div>
     <label style={{ fontSize:"12px", color:"rgba(255,255,255,0.6)", marginBottom:"8px", display:"block", fontWeight:"700" }}>First Choice</label>
     <input
