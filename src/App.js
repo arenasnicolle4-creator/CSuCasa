@@ -64,7 +64,9 @@ const [keyAreas, setKeyAreas] = useState("");
 const [additionalNotes, setAdditionalNotes] = useState("");
 const [preferredDay1, setPreferredDay1] = useState("");
 const [preferredDay2, setPreferredDay2] = useState("");
-const [preferredTimes, setPreferredTimes] = useState([]);
+const [timeFrom, setTimeFrom] = useState("8:00 AM");
+const [timeTo, setTimeTo] = useState("5:00 PM");
+const [timeWindows, setTimeWindows] = useState([]);
 // Load Google Places API and initialize autocomplete
 useEffect(() => {
     // Only initialize when on step 2 and input is available
@@ -192,15 +194,6 @@ const frequencyDiscounts = {
   "every-4-weeks": 0.09,
   "one-time": 0,
 };
-const timeSlots = [
-  "Anytime",
-  "9:00 AM - 10:00 AM",
-  "10:00 AM - 11:00 AM",
-  "12:00 PM - 1:00 PM",
-  "1:00 PM - 2:00 PM",
-  "2:00 PM - 3:00 PM",
-  "3:00 PM - 4:00 PM",
-];
 // Calculate total price
 const calculateSubtotal = () => {
   let total = 0;
@@ -382,13 +375,6 @@ items.push({
 }
 return items;
 };
-const handleTimeToggle = (time) => {
-  if (preferredTimes.includes(time)) {
-    setPreferredTimes(preferredTimes.filter((t) => t !== time));
-  } else {
-  setPreferredTimes([...preferredTimes, time]);
-}
-};
 const handleContinueToAddOns = () => {
   const isValid =
   serviceType === "Airbnb Cleaning"
@@ -455,7 +441,7 @@ const handleSubmit = async () => {
   formData.append('Additional Notes', additionalNotes || 'None');
   formData.append('Preferred Day 1', preferredDay1 || 'Not specified');
   formData.append('Preferred Day 2', preferredDay2 || 'Not specified');
-  formData.append('Preferred Times', preferredTimes.join(', ') || 'Any time');
+  formData.append('Preferred Times', timeWindows.length ? timeWindows.join(', ') : 'Not specified');
   
   // Pricing
   formData.append('Subtotal', `$${calculateSubtotal().toFixed(2)}`);
@@ -2978,175 +2964,69 @@ style={{
 />
 </div>
 <div style={{ marginBottom: "35px" }}>
-<label
-style={{
-    display: "flex",
-    alignItems: "center",
-    fontSize: "13px",
-    fontWeight: "800",
-    color: "#06b6d4",
-    marginBottom: "15px",
-    gap: "8px",
-    letterSpacing: "1px",
-    textTransform: "uppercase",
-  }}
->
-<Calendar size={18} color="#06b6d4" />
-Preferred Day(s)
+<label style={{ display:"flex", alignItems:"center", fontSize:"13px", fontWeight:"800", color:"#06b6d4", marginBottom:"15px", gap:"8px", letterSpacing:"1px", textTransform:"uppercase" }}>
+  <Calendar size={18} color="#06b6d4" />
+  Preferred Start Date(s)
 </label>
-<div
-style={{
-    display: "grid",
-    gridTemplateColumns: "1fr 1fr",
-    gap: "15px",
-  }}
->
-<div>
-<label
-style={{
-    fontSize: "12px",
-    color: "rgba(255, 255, 255, 0.6)",
-    marginBottom: "8px",
-    display: "block",
-    fontWeight: "700",
-  }}
->
-First Choice
-</label>
-<select
-value={preferredDay1}
-onChange={(e) => setPreferredDay1(e.target.value)}
-style={{
-    width: "100%",
-    padding: "16px 20px",
-    fontSize: "16px",
-    border: "2px solid rgba(255, 255, 255, 0.2)",
-    borderRadius: "14px",
-    background: "rgba(255, 255, 255, 0.95)",
-    cursor: "pointer",
-    boxSizing: "border-box",
-    fontWeight: "600",
-    color: "#0c4a6e",
-  }}
->
-<option value="">Select day...</option>
-{[
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday",
-  ].map((day) => (
-    <option key={day} value={day}>
-    {day}
-    </option>
-  ))}
-</select>
-</div>
-<div>
-<label
-style={{
-    fontSize: "12px",
-    color: "rgba(255, 255, 255, 0.6)",
-    marginBottom: "8px",
-    display: "block",
-    fontWeight: "700",
-  }}
->
-Second Choice
-</label>
-<select
-value={preferredDay2}
-onChange={(e) => setPreferredDay2(e.target.value)}
-style={{
-    width: "100%",
-    padding: "16px 20px",
-    fontSize: "16px",
-    border: "2px solid rgba(255, 255, 255, 0.2)",
-    borderRadius: "14px",
-    background: "rgba(255, 255, 255, 0.95)",
-    cursor: "pointer",
-    boxSizing: "border-box",
-    fontWeight: "600",
-    color: "#0c4a6e",
-  }}
->
-<option value="">Select day...</option>
-{[
-    "Monday",
-    "Tuesday",
-    "Wednesday",
-    "Thursday",
-    "Friday",
-    "Saturday",
-    "Sunday",
-  ].map((day) => (
-    <option key={day} value={day}>
-    {day}
-    </option>
-  ))}
-</select>
+<p style={{ fontSize:"13px", color:"rgba(255,255,255,0.6)", fontWeight:"600", marginTop:"-10px", marginBottom:"16px" }}>Select your first choice and a backup date.</p>
+<div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"15px" }}>
+  <div>
+    <label style={{ fontSize:"12px", color:"rgba(255,255,255,0.6)", marginBottom:"8px", display:"block", fontWeight:"700" }}>First Choice</label>
+    <input
+      type="date"
+      value={preferredDay1}
+      onChange={(e) => setPreferredDay1(e.target.value)}
+      style={{ width:"100%", padding:"16px 20px", fontSize:"16px", border:"2px solid rgba(255,255,255,0.2)", borderRadius:"14px", background:"rgba(255,255,255,0.95)", cursor:"pointer", boxSizing:"border-box", fontWeight:"600", color:"#0c4a6e" }}
+    />
+  </div>
+  <div>
+    <label style={{ fontSize:"12px", color:"rgba(255,255,255,0.6)", marginBottom:"8px", display:"block", fontWeight:"700" }}>Second Choice</label>
+    <input
+      type="date"
+      value={preferredDay2}
+      onChange={(e) => setPreferredDay2(e.target.value)}
+      style={{ width:"100%", padding:"16px 20px", fontSize:"16px", border:"2px solid rgba(255,255,255,0.2)", borderRadius:"14px", background:"rgba(255,255,255,0.95)", cursor:"pointer", boxSizing:"border-box", fontWeight:"600", color:"#0c4a6e" }}
+    />
+  </div>
 </div>
 </div>
-</div>
+
 <div style={{ marginBottom: "40px" }}>
-<label
-style={{
-    display: "flex",
-    alignItems: "center",
-    fontSize: "13px",
-    fontWeight: "800",
-    color: "#06b6d4",
-    marginBottom: "15px",
-    gap: "8px",
-    letterSpacing: "1px",
-    textTransform: "uppercase",
-  }}
->
-<Clock size={18} color="#06b6d4" />
-Preferred Time(s)
+<label style={{ display:"flex", alignItems:"center", fontSize:"13px", fontWeight:"800", color:"#06b6d4", marginBottom:"15px", gap:"8px", letterSpacing:"1px", textTransform:"uppercase" }}>
+  <Clock size={18} color="#06b6d4" />
+  Preferred Service Times
 </label>
-<div
-style={{
-    display: "grid",
-    gridTemplateColumns:
-    "repeat(auto-fill, minmax(180px, 1fr))",
-    gap: "12px",
-  }}
->
-{timeSlots.map((time) => (
-      <div
-      key={time}
-      onClick={() => handleTimeToggle(time)}
-      className="service-card"
-      style={{
-          padding: "18px",
-          border: preferredTimes.includes(time)
-          ? "2px solid #0ea5e9"
-          : "2px solid rgba(255, 255, 255, 0.2)",
-          borderRadius: "14px",
-          textAlign: "center",
-          cursor: "pointer",
-          background: preferredTimes.includes(time)
-          ? "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)"
-          : "rgba(255, 255, 255, 0.95)",
-          fontSize: "14px",
-          fontWeight: preferredTimes.includes(time)
-          ? "800"
-          : "600",
-          color: preferredTimes.includes(time)
-          ? "white"
-          : "#0c4a6e",
-          transition: "all 0.3s ease",
-          letterSpacing: "0.3px",
-        }}
-    >
-    {time}
-    </div>
-  ))}
+<p style={{ fontSize:"13px", color:"rgba(255,255,255,0.6)", fontWeight:"600", marginTop:"-10px", marginBottom:"16px" }}>Add one or more time windows when cleaning is welcome.</p>
+{/* From / To row */}
+<div style={{ display:"flex", gap:"10px", alignItems:"center", marginBottom:"12px", flexWrap:"wrap" }}>
+  <div style={{ flex:1, minWidth:"120px" }}>
+    <label style={{ fontSize:"11px", fontWeight:"700", color:"rgba(255,255,255,0.6)", letterSpacing:"0.5px", textTransform:"uppercase", display:"block", marginBottom:"6px" }}>From</label>
+    <select value={timeFrom} onChange={e=>setTimeFrom(e.target.value)} style={{ width:"100%", padding:"14px 16px", borderRadius:"12px", border:"2px solid rgba(255,255,255,0.2)", background:"rgba(255,255,255,0.95)", color:"#0c4a6e", fontSize:"16px", fontWeight:"600", outline:"none", boxSizing:"border-box" }}>
+      {["12:00 AM","12:30 AM","1:00 AM","1:30 AM","2:00 AM","2:30 AM","3:00 AM","3:30 AM","4:00 AM","4:30 AM","5:00 AM","5:30 AM","6:00 AM","6:30 AM","7:00 AM","7:30 AM","8:00 AM","8:30 AM","9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM","5:30 PM","6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM","8:30 PM","9:00 PM","9:30 PM","10:00 PM","10:30 PM","11:00 PM","11:30 PM"].map(t=><option key={t} value={t}>{t}</option>)}
+    </select>
+  </div>
+  <div style={{ paddingTop:"22px", color:"rgba(255,255,255,0.7)", fontWeight:"800", fontSize:"14px" }}>to</div>
+  <div style={{ flex:1, minWidth:"120px" }}>
+    <label style={{ fontSize:"11px", fontWeight:"700", color:"rgba(255,255,255,0.6)", letterSpacing:"0.5px", textTransform:"uppercase", display:"block", marginBottom:"6px" }}>To</label>
+    <select value={timeTo} onChange={e=>setTimeTo(e.target.value)} style={{ width:"100%", padding:"14px 16px", borderRadius:"12px", border:"2px solid rgba(255,255,255,0.2)", background:"rgba(255,255,255,0.95)", color:"#0c4a6e", fontSize:"16px", fontWeight:"600", outline:"none", boxSizing:"border-box" }}>
+      {["12:00 AM","12:30 AM","1:00 AM","1:30 AM","2:00 AM","2:30 AM","3:00 AM","3:30 AM","4:00 AM","4:30 AM","5:00 AM","5:30 AM","6:00 AM","6:30 AM","7:00 AM","7:30 AM","8:00 AM","8:30 AM","9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM","5:30 PM","6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM","8:30 PM","9:00 PM","9:30 PM","10:00 PM","10:30 PM","11:00 PM","11:30 PM"].map(t=><option key={t} value={t}>{t}</option>)}
+    </select>
+  </div>
+  <div style={{ paddingTop:"22px" }}>
+    <button onClick={()=>{ const w=`${timeFrom} – ${timeTo}`; if(!timeWindows.includes(w)) setTimeWindows([...timeWindows,w]); }} style={{ padding:"14px 20px", borderRadius:"12px", border:"2px solid rgba(14,165,233,0.6)", background:"linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)", color:"white", fontSize:"14px", fontWeight:"800", cursor:"pointer", whiteSpace:"nowrap" }}>+ Add</button>
+  </div>
 </div>
+{/* Added windows */}
+{timeWindows.length>0&&(
+  <div style={{ display:"flex", flexWrap:"wrap", gap:"8px" }}>
+    {timeWindows.map((w,i)=>(
+      <div key={i} style={{ display:"inline-flex", alignItems:"center", gap:"8px", padding:"10px 16px", borderRadius:"20px", background:"rgba(14,165,233,0.15)", border:"1.5px solid rgba(93,235,241,0.4)" }}>
+        <span style={{ fontSize:"13px", fontWeight:"700", color:"white" }}>{w}</span>
+        <button onClick={()=>setTimeWindows(timeWindows.filter((_,j)=>j!==i))} style={{ background:"none", border:"none", cursor:"pointer", color:"#06b6d4", fontSize:"16px", fontWeight:"900", lineHeight:"1", padding:"0" }}>×</button>
+      </div>
+    ))}
+  </div>
+)}
 </div>
 <div style={{ display: "flex", gap: "15px" }}>
 <button
