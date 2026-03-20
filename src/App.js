@@ -535,6 +535,12 @@ input:focus, textarea:focus, select:focus {
   border-color: #0ea5e9;
   box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
 }
+input[type="date"] {
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+  max-width: 100%;
+}
 .price-breakdown-scroll::-webkit-scrollbar {
   width: 8px;
 }
@@ -2969,14 +2975,14 @@ style={{
   Preferred Start Date(s)
 </label>
 <p style={{ fontSize:"13px", color:"rgba(255,255,255,0.6)", fontWeight:"600", marginTop:"-10px", marginBottom:"16px" }}>Select your first choice and a backup date.</p>
-<div style={{ display:"grid", gridTemplateColumns:"1fr", gap:"15px" }}>
+<div style={{ display:"grid", gridTemplateColumns:"1fr", gap:"15px", maxWidth:"100%", overflow:"hidden" }}>
   <div>
     <label style={{ fontSize:"12px", color:"rgba(255,255,255,0.6)", marginBottom:"8px", display:"block", fontWeight:"700" }}>First Choice</label>
     <input
       type="date"
       value={preferredDay1}
       onChange={(e) => setPreferredDay1(e.target.value)}
-      style={{ width:"100%", padding:"16px 20px", fontSize:"16px", border:"2px solid rgba(255,255,255,0.2)", borderRadius:"14px", background:"rgba(255,255,255,0.95)", cursor:"pointer", boxSizing:"border-box", fontWeight:"600", color:"#0c4a6e" }}
+      style={{ width:"100%", maxWidth:"100%", padding:"16px 14px", fontSize:"16px", border:"2px solid rgba(255,255,255,0.2)", borderRadius:"14px", background:"rgba(255,255,255,0.95)", cursor:"pointer", boxSizing:"border-box", fontWeight:"600", color:"#0c4a6e", display:"block" }}
     />
   </div>
   <div>
@@ -2985,7 +2991,7 @@ style={{
       type="date"
       value={preferredDay2}
       onChange={(e) => setPreferredDay2(e.target.value)}
-      style={{ width:"100%", padding:"16px 20px", fontSize:"16px", border:"2px solid rgba(255,255,255,0.2)", borderRadius:"14px", background:"rgba(255,255,255,0.95)", cursor:"pointer", boxSizing:"border-box", fontWeight:"600", color:"#0c4a6e" }}
+      style={{ width:"100%", maxWidth:"100%", padding:"16px 14px", fontSize:"16px", border:"2px solid rgba(255,255,255,0.2)", borderRadius:"14px", background:"rgba(255,255,255,0.95)", cursor:"pointer", boxSizing:"border-box", fontWeight:"600", color:"#0c4a6e", display:"block" }}
     />
   </div>
 </div>
