@@ -563,6 +563,11 @@ input:focus, textarea:focus, select:focus {
 
 /* Mobile Styles */
 @media (max-width: 768px) {
+  /* Hide desktop price sidebar on mobile — use sticky bar instead */
+  .desktop-sidebar {
+    display: none !important;
+  }
+  
   /* Hide 100% Satisfaction badge on mobile */
   .satisfaction-badge {
     display: none !important;
@@ -3239,7 +3244,7 @@ Terms & Conditions
 {/* Price Sidebar */}
 {(step === 2 || step === 3) && (
     <div
-    className="fade-in-up"
+    className="fade-in-up desktop-sidebar"
     style={{
         position: "sticky",
         top: "20px",
