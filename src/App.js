@@ -19,15 +19,8 @@ export default function App() {
   // Form state
   const [step, setStep] = useState(1);
 
-  // Load EmailJS SDK
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
-    script.onload = () => window.emailjs.init('ZsAm6x2gjm0hFV69o');
-    document.head.appendChild(script);
-  }, []);
-  const [mobileBarHeight, setMobileBarHeight] = useState(0);
   const mobileBarRef = useRef(null);
+  const [mobileBarHeight, setMobileBarHeight] = useState(0);
   useEffect(() => {
     const el = mobileBarRef.current;
     if (!el) return;
@@ -166,39 +159,34 @@ existingScript.onload = () => initializeAutocomplete();
 }
 }, [step]); // Re-run when step changes
 // Pricing constants
-
-// Anchor points: median sqft of each bracket → price from original table
-// Rate interpolates smoothly between anchors so every sqft step is slightly cheaper
-const SQFT_ANCHORS = [
-  { sqft: 499.5,  price: 71  },
-  { sqft: 1249.5, price: 89  },
-  { sqft: 1749.5, price: 124 },
-  { sqft: 2249.5, price: 144 },
-  { sqft: 2749.5, price: 164 },
-  { sqft: 3249.5, price: 189 },
-  { sqft: 3749.5, price: 214 },
-  { sqft: 4249.5, price: 238 },
-  { sqft: 4749.5, price: 259 },
-  { sqft: 5249.5, price: 277 },
-  { sqft: 5749.5, price: 300 },
-  { sqft: 6249.5, price: 323 },
-].map(a => ({ ...a, rate: a.price / a.sqft }));
-
-const calcHouseSqftPrice = (sqft) => {
-  if (!sqft || sqft <= 0) return 0;
-  if (sqft <= SQFT_ANCHORS[0].sqft) return sqft * SQFT_ANCHORS[0].rate;
-  if (sqft >= SQFT_ANCHORS[SQFT_ANCHORS.length-1].sqft) return sqft * SQFT_ANCHORS[SQFT_ANCHORS.length-1].rate;
-  for (let i = 0; i < SQFT_ANCHORS.length - 1; i++) {
-    const lo = SQFT_ANCHORS[i], hi = SQFT_ANCHORS[i+1];
-    if (sqft >= lo.sqft && sqft <= hi.sqft) {
-      const t = (sqft - lo.sqft) / (hi.sqft - lo.sqft);
-      const rate = lo.rate + t * (hi.rate - lo.rate);
-      return sqft * rate;
-    }
-  }
-  return 0;
+const squareFeetOptions = [
+  { range: "0-999", label: "< 1,000", icon: "🏠", price: 71 },
+  { range: "1000-1499", label: "1,000-1,499", icon: "🏡", price: 89 },
+  { range: "1500-1999", label: "1,500-1,999", icon: "🏘️", price: 124 },
+  { range: "2000-2499", label: "2,000-2,499", icon: "🏚️", price: 144 },
+  { range: "2500-2999", label: "2,500-2,999", icon: "🏛️", price: 164 },
+  { range: "3000-3499", label: "3,000-3,499", icon: "🏰", price: 189 },
+  { range: "3500-3999", label: "3,500-3,999", icon: "🏢", price: 214 },
+  { range: "4000-4499", label: "4,000-4,499", icon: "🏬", price: 238 },
+  { range: "4500-4999", label: "4,500-4,999", icon: "🏨", price: 259 },
+  { range: "5000-5499", label: "5,000-5,499", icon: "🏩", price: 277 },
+  { range: "5500-5999", label: "5,500-5,999", icon: "🏪", price: 300 },
+  { range: "6000-6499", label: "6,000+", icon: "🏫", price: 323 },
+];
+const squareFeetPricing = {
+  "0-999": 71,
+  "1000-1499": 89,
+  "1500-1999": 124,
+  "2000-2499": 144,
+  "2500-2999": 164,
+  "3000-3499": 189,
+  "3500-3999": 214,
+  "4000-4499": 238,
+  "4500-4999": 259,
+  "5000-5499": 277,
+  "5500-5999": 300,
+  "6000-6499": 323,
 };
-
 const frequencyDiscounts = {
   "every-week": 0.2,
   "bi-weekly": 0.15,
@@ -226,9 +214,9 @@ const calculateSubtotal = () => {
   total += addOns.pets * 10;
   total += addOns.baseTrimFeet * 0.54;
 } else {
-// House Cleaning pricing — smooth interpolated rate
-if (squareFeetRange) {
-  total += calcHouseSqftPrice(parseInt(squareFeetRange));
+// House Cleaning pricing
+if (squareFeetRange && squareFeetPricing[squareFeetRange]) {
+  total += squareFeetPricing[squareFeetRange];
 }
 total += bedrooms * 16;
 const fullBaths = Math.floor(bathrooms);
@@ -329,11 +317,13 @@ items.push({
     amount: addOns.baseTrimFeet * 0.54,
   });
 } else {
-if (squareFeetRange) {
-  const sqft = parseInt(squareFeetRange);
+if (squareFeetRange && squareFeetPricing[squareFeetRange]) {
+  const option = squareFeetOptions.find(
+    (opt) => opt.range === squareFeetRange
+  );
 items.push({
-    label: `${sqft.toLocaleString()} sq ft`,
-    amount: calcHouseSqftPrice(sqft),
+    label: `${option.label} sq ft`,
+    amount: squareFeetPricing[squareFeetRange],
   });
 }
 if (bedrooms > 0) {
@@ -405,87 +395,84 @@ const handleContinueToAddOns = () => {
 }
 };
 const handleSubmit = async () => {
-  // Build individual add-on lines
-  const addonLines = [];
-  if (addOns.fridge)           addonLines.push('• Inside Fridge');
-  if (addOns.oven)             addonLines.push('• Inside Oven');
-  if (addOns.microwave)        addonLines.push('• Inside Microwave');
-  if (addOns.deepClean > 0)    addonLines.push(`• Deep Clean +${addOns.deepClean}hr`);
-  if (addOns.linens > 0)       addonLines.push(`• ${addOns.linens} Linen Set(s)`);
-  if (addOns.dishes)           addonLines.push('• Clean Dishes');
-  if (addOns.windows > 0)      addonLines.push(`• ${addOns.windows} Window(s)`);
-  if (addOns.pets > 0)         addonLines.push(`• ${addOns.pets} Pet(s)`);
-  if (addOns.baseTrimFeet > 0) addonLines.push(`• Base Trim (${addOns.baseTrimFeet} ft)`);
+  // Prepare form data for FormSubmit
+  const formData = new FormData();
+  
+  // Add all form fields
+  formData.append('_subject', 'NEW BOOKING REQUEST - Cleaning Su Casa');
+  formData.append('First Name', firstName);
+  formData.append('Last Name', lastName);
+  formData.append('Phone', phone);
+  formData.append('Email', email);
+  formData.append('Street Address', address);
+  formData.append('Apt/Suite/Unit', address2 || 'N/A');
+  formData.append('City', city);
+  formData.append('State', state);
+  formData.append('ZIP', zip);
+  formData.append('Service Type', serviceType);
+  formData.append('Frequency', frequency);
+  
+  if (serviceType === "House Cleaning") {
+    formData.append('Square Feet Range', squareFeetRange);
+    formData.append('Bedrooms', bedrooms);
+  } else {
+    formData.append('Square Feet', airbnbSquareFeet);
+    formData.append('Laundry', airbnbLaundry);
+    formData.append('Beds', airbnbBeds);
+    formData.append('Units', airbnbUnits);
+  }
+  
+  formData.append('Bathrooms', bathrooms);
+  
+  // Add-ons
+  const addOnsList = [];
+  if (addOns.fridge) addOnsList.push('Inside Fridge');
+  if (addOns.oven) addOnsList.push('Inside Oven');
+  if (addOns.microwave) addOnsList.push('Inside Microwave');
+  if (addOns.deepClean > 0) addOnsList.push(`Deep Clean +${addOns.deepClean}hr`);
+  if (addOns.linens > 0) addOnsList.push(`${addOns.linens} Linen Set(s)`);
+  if (addOns.dishes) addOnsList.push('Clean Dishes');
+  if (addOns.windows > 0) addOnsList.push(`${addOns.windows} Window(s)`);
+  if (addOns.pets > 0) addOnsList.push(`${addOns.pets} Pet(s)`);
+  if (addOns.baseTrimFeet > 0) addOnsList.push(`Base Trim (${addOns.baseTrimFeet} ft)`);
+  formData.append('Add-Ons', addOnsList.join(', ') || 'None');
+  
+  formData.append('Key Areas', keyAreas || 'None specified');
+  formData.append('Additional Notes', additionalNotes || 'None');
+  formData.append('Preferred Day 1', preferredDay1 || 'Not specified');
+  formData.append('Preferred Day 2', preferredDay2 || 'Not specified');
+  formData.append('Preferred Times', timeWindows.length ? timeWindows.join(', ') : 'Not specified');
+  
+  // Pricing
+  formData.append('Subtotal', `$${calculateSubtotal().toFixed(2)}`);
+  formData.append('Discount', `-$${getDiscount().toFixed(2)}`);
+  formData.append('TOTAL PRICE', `$${calculateTotal().toFixed(2)}`);
 
-  // Build full price breakdown as formatted string
-  const breakdownLines = getPriceBreakdown().map(item =>
-    `${item.label.padEnd(30, '.')} $${item.amount.toFixed(2)}`
-  ).join('\n');
-
-  const templateParams = {
-    // Contact
-    first_name:       firstName,
-    last_name:        lastName,
-    phone:            phone,
-    email:            email,
-    // Address
-    address:          address,
-    address2:         address2 || 'N/A',
-    city:             city,
-    state:            state,
-    zip:              zip,
-    // Service
-    service_type:     serviceType,
-    frequency:        frequency,
-    // House Cleaning specific (bathrooms included here)
-    sqft_range:       serviceType === "House Cleaning" ? squareFeetRange : 'N/A',
-    bedrooms:         serviceType === "House Cleaning" ? String(bedrooms) : 'N/A',
-    house_bathrooms:  serviceType === "House Cleaning" ? String(bathrooms) : 'N/A',
-    // Airbnb specific (bathrooms included here)
-    airbnb_sqft:      serviceType === "Airbnb Cleaning" ? airbnbSquareFeet : 'N/A',
-    airbnb_laundry:   serviceType === "Airbnb Cleaning" ? airbnbLaundry : 'N/A',
-    airbnb_beds:      serviceType === "Airbnb Cleaning" ? String(airbnbBeds) : 'N/A',
-    airbnb_bathrooms: serviceType === "Airbnb Cleaning" ? String(bathrooms) : 'N/A',
-    airbnb_units:     serviceType === "Airbnb Cleaning" ? airbnbUnits : 'N/A',
-    // Add-ons
-    addons_list:      addonLines.length > 0 ? addonLines.join('\n') : 'None selected',
-    // Notes & scheduling
-    key_areas:        keyAreas || 'None specified',
-    additional_notes: additionalNotes || 'None',
-    preferred_date_1: preferredDay1 || 'Not specified',
-    preferred_date_2: preferredDay2 || 'Not specified',
-    preferred_times:  timeWindows.length ? timeWindows.join(', ') : 'Not specified',
-    // Pricing — full line-item breakdown
-    price_breakdown:  breakdownLines || 'No items',
-    subtotal:         `$${calculateSubtotal().toFixed(2)}`,
-    discount:         getDiscount() > 0 ? `-$${getDiscount().toFixed(2)}` : 'None',
-    discount_label:   getDiscount() > 0 ? (() => {
-                        if (serviceType === "House Cleaning") {
-                          if (frequency === "every-week")    return "Weekly Discount (20%)";
-                          if (frequency === "bi-weekly")     return "Bi-Weekly Discount (15%)";
-                          if (frequency === "every-3-weeks") return "3-Week Discount (12%)";
-                          if (frequency === "every-4-weeks") return "4-Week Discount (9%)";
-                        }
-                        return "Discount Applied";
-                      })() : 'N/A',
-    total_price:      `$${calculateTotal().toFixed(2)}`,
-  };
+  // FormSubmit requires these for AJAX submissions
+  formData.append('_captcha', 'false'); // Disable captcha
+  formData.append('_template', 'table'); // Use table format for email
 
   try {
-    // emailjs.send(serviceID, templateID, params, publicKey)
-    const result = await window.emailjs.send(
-      'service_8bkln92',
-      'template_ss9j71d',
-      templateParams,
-      'ZsAm6x2gjm0hFV69o'
-    );
-    if (result.status === 200) {
+    // Send to FormSubmit with proper headers
+    const response = await fetch('https://formsubmit.co/ajax/AkCleaningSuCasa@gmail.com', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json'
+      },
+      body: JSON.stringify(Object.fromEntries(formData))
+    });
+
+    const result = await response.json();
+    
+    if (result.success) {
+      // Show success modal
       setShowSuccessModal(true);
     } else {
       alert('There was an error submitting your booking. Please try again or call us directly.');
     }
   } catch (error) {
-    console.error('EmailJS error:', error);
+    console.error('Submission error:', error);
     alert('There was an error submitting your booking. Please try again or call us directly.');
   }
 };
@@ -548,9 +535,6 @@ input:focus, textarea:focus, select:focus {
   border-color: #0ea5e9;
   box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
 }
-input, textarea, select { font-size: 16px !important; touch-action: manipulation; }
-button { touch-action: manipulation; }
-html, body, * { -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important; }
 input[type="date"] {
   -webkit-appearance: none;
   appearance: none;
@@ -581,7 +565,7 @@ input[type="date"] {
 }
 
 /* Mobile Styles */
-@media (max-width: 900px) {
+@media (max-width: 768px) {
   /* Hide desktop price sidebar on mobile — use sticky bar instead */
   .desktop-sidebar {
     display: none !important;
@@ -690,7 +674,7 @@ body {
 
 /* Desktop - hide mobile price and ensure sticky works */
 .mobile-price-sticky { display: none; }
-@media (min-width: 901px) {
+@media (min-width: 769px) {
   .mobile-price-sticky {
     display: none !important;
   }
@@ -794,17 +778,6 @@ body {
   0%, 100% { transform: translateY(0); opacity: 0.5; }
   50% { transform: translateY(-22px); opacity: 1; }
 }
-@keyframes pricePop {
-  0% { transform: scale(1); }
-  50% { transform: scale(1.06); }
-  100% { transform: scale(1); }
-}
-@keyframes savingsPulse {
-  0%, 100% { box-shadow: 0 0 10px rgba(16,185,129,0.4), 0 0 20px rgba(16,185,129,0.2); }
-  50% { box-shadow: 0 0 18px rgba(16,185,129,0.7), 0 0 35px rgba(16,185,129,0.35); }
-}
-.price-pop { animation: pricePop 0.35s ease-out forwards; }
-.savings-pulse { animation: savingsPulse 2s ease-in-out infinite; }
 `}</style>
 
 {/* Animated Background Elements - Fixed Container */}
@@ -926,33 +899,28 @@ style={{
     gap: "8px",
   }}
 >
-{/* CLEANING - Oswald thin with white glow like Su Oficina */}
+{/* CLEANING - Thin modern all caps */}
 <div
+className="glow-text"
 style={{
     fontFamily: "'Oswald', sans-serif",
     fontSize: "52px",
     fontWeight: "300",
     letterSpacing: "8px",
     lineHeight: "1",
-    color: "white",
-    textShadow: "0 0 20px rgba(255,255,255,0.6), 0 0 40px rgba(93,235,241,0.3)",
   }}
 >
 CLEANING
 </div>
-{/* Su Casa - Allura cursive with metallic cyan gradient like Su Oficina gold */}
+{/* Su Casa - Elegant handwritten cursive */}
 <div
 style={{
     fontFamily: "'Allura', cursive",
     fontSize: "56px",
+    color: "#7dd3fc",
     letterSpacing: "3px",
     marginTop: "-8px",
     lineHeight: "1",
-    fontWeight: "400",
-    background: "linear-gradient(180deg, #E0F7FF 0%, #7dd3fc 25%, #0369a1 50%, #7dd3fc 75%, #E0F7FF 100%)",
-    WebkitBackgroundClip: "text",
-    WebkitTextFillColor: "transparent",
-    backgroundClip: "text",
   }}
 >
 Su Casa
@@ -962,24 +930,25 @@ Su Casa
     <>
     <div
     style={{
-        height: "2px",
+        marginTop: "20px",
+        height: "3px",
         width: "80px",
-        background: "linear-gradient(90deg, transparent, #7dd3fc, transparent)",
-        margin: "14px auto 10px",
-        boxShadow: "0 0 10px rgba(125,211,252,0.5)",
+        background:
+        "linear-gradient(90deg, transparent, #06b6d4, transparent)",
+        margin: "20px auto 15px",
       }}
   />
   <p
   style={{
-      color: "rgba(125,211,252,0.7)",
-      fontSize: "13px",
+      color: "rgba(255, 255, 255, 0.9)",
+      fontSize: "16px",
       margin: 0,
-      fontWeight: "700",
-      letterSpacing: "2px",
+      fontWeight: "500",
+      letterSpacing: "1px",
       textTransform: "uppercase",
     }}
 >
-🏠 Home Cleaning Quote
+Premium Cleaning Services
 </p>
 </>
 )}
@@ -1615,8 +1584,8 @@ style={{
   <div
   style={{
       display: "grid",
-      gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
-      gap: "8px",
+      gridTemplateColumns: "repeat(4, 1fr)",
+      gap: "15px",
     }}
 >
 {[
@@ -1632,7 +1601,7 @@ style={{
       }`}
   onClick={() => setAirbnbUnits(option.value)}
   style={{
-      padding: "16px 8px",
+      padding: "20px 15px",
       border:
       airbnbUnits === option.value
       ? "2px solid #0ea5e9"
@@ -1644,20 +1613,18 @@ style={{
       ? "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)"
       : "rgba(255, 255, 255, 0.95)",
       cursor: "pointer",
-      minWidth: 0,
     }}
 >
 <div
 style={{
-    fontSize: "12px",
+    fontSize: "14px",
     fontWeight: "800",
     color:
     airbnbUnits === option.value
     ? "white"
     : "#0c4a6e",
-    marginBottom: option.discount ? "4px" : "0",
+    marginBottom: option.discount ? "6px" : "0",
     lineHeight: "1.3",
-    wordBreak: "break-word",
   }}
 >
 {option.label}
@@ -1665,7 +1632,7 @@ style={{
 {option.discount && (
     <div
     style={{
-        fontSize: "10px",
+        fontSize: "11px",
         fontWeight: "700",
         color:
         airbnbUnits === option.value
@@ -1684,98 +1651,76 @@ style={{
 {/* HOUSE CLEANING FIELDS */}
 {serviceType === "House Cleaning" && (
     <>
-    {/* Square Feet - Slider */}
+    {/* Square Feet - Card Grid */}
     <div style={{ marginBottom: "35px" }}>
     <label
     style={{
         display: "flex",
         alignItems: "center",
-        justifyContent: "space-between",
         fontSize: "13px",
         fontWeight: "800",
         color: "#06b6d4",
-        marginBottom: "20px",
+        marginBottom: "15px",
         gap: "8px",
         letterSpacing: "1px",
         textTransform: "uppercase",
-        flexWrap: "wrap",
       }}
   >
-    <div style={{ display:"flex", alignItems:"center", gap:"8px" }}><span>📐</span>Home Size *</div>
-    <div style={{ fontSize:"22px", fontWeight:"900", color:"white" }}>{parseInt(squareFeetRange||500).toLocaleString()} sqft</div>
+  <span>📐</span>
+  Home Size *
   </label>
-  <input
-    type="range"
-    min="500"
-    max="6500"
-    step="50"
-    value={squareFeetRange || 500}
-    onChange={e => setSquareFeetRange(e.target.value)}
-    style={{
-      width:"100%", height:"8px", borderRadius:"4px", outline:"none",
-      cursor:"pointer", WebkitAppearance:"none", appearance:"none", marginBottom:"16px",
-      background:`linear-gradient(to right, #0ea5e9 0%, #0ea5e9 ${((parseInt(squareFeetRange||500)-500)/(6500-500))*100}%, rgba(255,255,255,0.2) ${((parseInt(squareFeetRange||500)-500)/(6500-500))*100}%, rgba(255,255,255,0.2) 100%)`
+  <div
+  style={{
+      display: "grid",
+      gridTemplateColumns:
+      "repeat(auto-fill, minmax(140px, 1fr))",
+      gap: "15px",
     }}
-  />
-  <div style={{ position:"relative" }}>
-    <input
-      type="number"
-      min="500"
-      max="6500"
-      value={squareFeetRange || ""}
-      onChange={e => setSquareFeetRange(e.target.value)}
-      placeholder="Enter square footage..."
-      style={{
-        width:"100%", padding:"20px 60px 20px 24px",
-        fontSize:"17px", border:"2px solid rgba(255,255,255,0.2)",
-        borderRadius:"16px", boxSizing:"border-box",
-        background:"rgba(255,255,255,0.95)", fontWeight:"500", color:"#0c4a6e",
+>
+{squareFeetOptions.map((option) => (
+      <div
+      key={option.range}
+      className={`service-card ${
+          squareFeetRange === option.range ? "selected" : ""
+        }`}
+    onClick={() => setSquareFeetRange(option.range)}
+    style={{
+        padding: "22px 15px",
+        border:
+        squareFeetRange === option.range
+        ? "2px solid #0ea5e9"
+        : "2px solid rgba(255, 255, 255, 0.2)",
+        borderRadius: "18px",
+        textAlign: "center",
+        background:
+        squareFeetRange === option.range
+        ? "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)"
+        : "rgba(255, 255, 255, 0.95)",
       }}
-    />
-    <div style={{ position:"absolute", right:"20px", top:"50%", transform:"translateY(-50%)", color:"#0369a1", fontSize:"14px", fontWeight:"700", pointerEvents:"none" }}>sqft</div>
+  >
+  <div
+  style={{ fontSize: "36px", marginBottom: "10px" }}
+  >
+  {option.icon}
   </div>
-  {/* Live price display */}
-  {squareFeetRange && (
-    <div style={{ marginTop:"16px" }}>
-      {/* Main price box */}
-      <div style={{ padding:"18px 22px", borderRadius:"14px", background:"rgba(14,165,233,0.12)", border:"1px solid rgba(93,235,241,0.3)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-        <div style={{ color:"rgba(255,255,255,0.6)", fontSize:"12px", fontWeight:"700", letterSpacing:"1px", textTransform:"uppercase" }}>
-          {frequency && frequencyDiscounts[frequency] > 0 ? "Your discounted base cost" : "Base cost"}
-        </div>
-        <div key={`${squareFeetRange}-${frequency}`} className="price-pop" style={{ textAlign:"right" }}>
-          {frequency && frequencyDiscounts[frequency] > 0 && (
-            <div style={{ color:"rgba(255,255,255,0.35)", fontSize:"12px", fontWeight:"600", textDecoration:"line-through", marginBottom:"2px" }}>
-              was ${calcHouseSqftPrice(parseInt(squareFeetRange)).toFixed(2)}
-            </div>
-          )}
-          <div style={{ color:"#7dd3fc", fontSize:"32px", fontWeight:"900", lineHeight:"1", textShadow:"0 0 20px rgba(125,211,252,0.5)" }}>
-            ${(calcHouseSqftPrice(parseInt(squareFeetRange||500)) * (1-(frequencyDiscounts[frequency]||0))).toFixed(2)}
-          </div>
-          <div style={{ color:"rgba(255,255,255,0.4)", fontSize:"11px", fontWeight:"600" }}>base cost</div>
-        </div>
-      </div>
-      {/* Glowing savings badge — only when discount applies */}
-      {frequency && frequencyDiscounts[frequency] > 0 && (
-        <div className="savings-pulse" style={{ marginTop:"10px", padding:"12px 20px", borderRadius:"12px", background:"linear-gradient(135deg, rgba(16,185,129,0.2), rgba(5,150,105,0.15))", border:"1.5px solid rgba(16,185,129,0.5)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-            <span style={{ fontSize:"16px" }}>✓</span>
-            <div>
-              <div style={{ color:"#34d399", fontSize:"13px", fontWeight:"800", letterSpacing:"0.5px" }}>
-                You Save {Math.round(frequencyDiscounts[frequency]*100)}%
-              </div>
-              <div style={{ color:"rgba(52,211,153,0.7)", fontSize:"11px", fontWeight:"600" }}>
-                {frequency === "every-week" ? "Every Week" : frequency === "bi-weekly" ? "Bi-Weekly" : frequency === "every-3-weeks" ? "Every 3 Weeks" : "Every 4 Weeks"} discount applied
-              </div>
-            </div>
-          </div>
-          <div style={{ color:"#34d399", fontSize:"20px", fontWeight:"900", textShadow:"0 0 12px rgba(52,211,153,0.6)", whiteSpace:"nowrap", flexShrink:0 }}>
-            -${(calcHouseSqftPrice(parseInt(squareFeetRange)) * frequencyDiscounts[frequency]).toFixed(2)}
-          </div>
-        </div>
-      )}
-    </div>
-  )}
-  </div>
+  <div
+  style={{
+      fontSize: "13px",
+      fontWeight: "800",
+      color:
+      squareFeetRange === option.range
+      ? "white"
+      : "#0c4a6e",
+      lineHeight: "1.3",
+      letterSpacing: "0.3px",
+    }}
+>
+{option.label}
+</div>
+</div>
+))}
+</div>
+</div>
 {/* Bedrooms */}
 <div style={{ marginBottom: "35px" }}>
 <label
@@ -1939,7 +1884,6 @@ style={{
 style={{
     display: "flex",
     alignItems: "center",
-    justifyContent: "space-between",
     fontSize: "13px",
     fontWeight: "800",
     color: "#06b6d4",
@@ -1949,96 +1893,43 @@ style={{
     textTransform: "uppercase",
   }}
 >
-  <div style={{ display:"flex", alignItems:"center", gap:"8px" }}><span>📐</span>Square Footage *</div>
-  {airbnbSquareFeet && <div style={{ fontSize:"20px", fontWeight:"900", color:"white" }}>{parseInt(airbnbSquareFeet).toLocaleString()} sqft</div>}
+<span>📐</span>
+Square Footage *
 </label>
-{airbnbLaundry && (
-  <>
-    <input
-      type="range"
-      min="200"
-      max="6000"
-      step="50"
-      value={airbnbSquareFeet || 200}
-      onChange={e => setAirbnbSquareFeet(e.target.value)}
-      style={{
-        width: "100%", height: "8px", borderRadius: "4px", outline: "none",
-        cursor: "pointer", WebkitAppearance: "none", appearance: "none", marginBottom: "16px",
-        background: `linear-gradient(to right, #0ea5e9 0%, #0ea5e9 ${((parseInt(airbnbSquareFeet || 200) - 200) / (6000 - 200)) * 100}%, rgba(255,255,255,0.2) ${((parseInt(airbnbSquareFeet || 200) - 200) / (6000 - 200)) * 100}%, rgba(255,255,255,0.2) 100%)`
-      }}
-    />
-    <style>{`input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#0284c7,#0ea5e9);cursor:pointer;border:3px solid white;box-shadow:0 4px 12px rgba(14,165,233,0.5);}input[type="range"]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#0284c7,#0ea5e9);cursor:pointer;border:3px solid white;}`}</style>
-  </>
-)}
-<div style={{ position:"relative" }}>
-  <input
-    type="number"
-    value={airbnbSquareFeet}
-    onChange={(e) => setAirbnbSquareFeet(e.target.value)}
-    placeholder="Enter square footage"
-    disabled={!airbnbLaundry}
-    style={{
-      width: "100%", padding: "20px 60px 20px 24px",
-      fontSize: "17px", border: "2px solid rgba(255, 255, 255, 0.2)",
-      borderRadius: "16px", boxSizing: "border-box",
-      background: airbnbLaundry ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0.5)",
-      fontWeight: "500", cursor: airbnbLaundry ? "text" : "not-allowed",
-      opacity: airbnbLaundry ? 1 : 0.6,
-    }}
-  />
-  <div style={{ position:"absolute", right:"20px", top:"50%", transform:"translateY(-50%)", color:"#0369a1", fontSize:"14px", fontWeight:"700", pointerEvents:"none" }}>sqft</div>
-</div>
+<input
+type="number"
+value={airbnbSquareFeet}
+onChange={(e) => setAirbnbSquareFeet(e.target.value)}
+placeholder="Enter square footage"
+disabled={!airbnbLaundry}
+style={{
+    width: "100%",
+    padding: "20px 24px",
+    fontSize: "17px",
+    border: "2px solid rgba(255, 255, 255, 0.2)",
+    borderRadius: "16px",
+    boxSizing: "border-box",
+    background: airbnbLaundry
+    ? "rgba(255, 255, 255, 0.95)"
+    : "rgba(255, 255, 255, 0.5)",
+    fontWeight: "500",
+    cursor: airbnbLaundry ? "text" : "not-allowed",
+    opacity: airbnbLaundry ? 1 : 0.6,
+  }}
+/>
 {!airbnbLaundry && (
-    <p style={{ fontSize: "13px", color: "rgba(255, 255, 255, 0.7)", marginTop: "10px", marginBottom: 0, fontWeight: "600" }}>
-    💡 Please select laundry service first
-    </p>
+    <p
+    style={{
+        fontSize: "13px",
+        color: "rgba(255, 255, 255, 0.7)",
+        marginTop: "10px",
+        marginBottom: 0,
+        fontWeight: "600",
+      }}
+  >
+  💡 Please select laundry service first
+  </p>
 )}
-{/* Live price display for Airbnb sqft */}
-{airbnbLaundry && airbnbSquareFeet && (() => {
-  const rate = airbnbLaundry === "yes" ? 0.095 : 0.09;
-  const sqftCost = parseFloat(airbnbSquareFeet) * rate;
-  const discountPercent = (frequency === "4-6" ? 0.03 : frequency === "7-9" ? 0.06 : frequency === "10+" ? 0.075 : 0) +
-    (airbnbUnits === "2" ? 0.03 : airbnbUnits === "3" ? 0.05 : airbnbUnits === "4+" ? 0.07 : 0);
-  const discountedSqftCost = sqftCost * (1 - discountPercent);
-  return (
-    <div style={{ marginTop:"16px" }}>
-      <div style={{ padding:"18px 22px", borderRadius:"14px", background:"rgba(14,165,233,0.12)", border:"1px solid rgba(93,235,241,0.3)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-        <div style={{ color:"rgba(255,255,255,0.6)", fontSize:"12px", fontWeight:"700", letterSpacing:"1px", textTransform:"uppercase" }}>
-          {discountPercent > 0 ? "Discounted base cost" : "Base cost"}
-        </div>
-        <div key={`${airbnbSquareFeet}-${airbnbLaundry}-${discountPercent}`} className="price-pop" style={{ textAlign:"right" }}>
-          {discountPercent > 0 && (
-            <div style={{ color:"rgba(255,255,255,0.35)", fontSize:"12px", fontWeight:"600", textDecoration:"line-through", marginBottom:"2px" }}>
-              was ${sqftCost.toFixed(2)}
-            </div>
-          )}
-          <div style={{ color:"#7dd3fc", fontSize:"32px", fontWeight:"900", lineHeight:"1", textShadow:"0 0 20px rgba(125,211,252,0.5)" }}>
-            ${discountedSqftCost.toFixed(2)}
-          </div>
-          <div style={{ color:"rgba(255,255,255,0.4)", fontSize:"11px", fontWeight:"600" }}>base cost</div>
-        </div>
-      </div>
-      {discountPercent > 0 && (
-        <div className="savings-pulse" style={{ marginTop:"10px", padding:"12px 20px", borderRadius:"12px", background:"linear-gradient(135deg, rgba(16,185,129,0.2), rgba(5,150,105,0.15))", border:"1.5px solid rgba(16,185,129,0.5)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
-            <span style={{ fontSize:"16px" }}>✓</span>
-            <div>
-              <div style={{ color:"#34d399", fontSize:"13px", fontWeight:"800", letterSpacing:"0.5px" }}>
-                You Save {Math.round(discountPercent*100)}%
-              </div>
-              <div style={{ color:"rgba(52,211,153,0.7)", fontSize:"11px", fontWeight:"600" }}>
-                Volume discount applied
-              </div>
-            </div>
-          </div>
-          <div style={{ color:"#34d399", fontSize:"20px", fontWeight:"900", textShadow:"0 0 12px rgba(52,211,153,0.6)", whiteSpace:"nowrap", flexShrink:0 }}>
-            -${(sqftCost * discountPercent).toFixed(2)}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-})()}
 </div>
 {/* Beds (not Bedrooms) */}
 <div style={{ marginBottom: "35px" }}>
@@ -3084,8 +2975,7 @@ style={{
   Preferred Start Date(s)
 </label>
 <p style={{ fontSize:"13px", color:"rgba(255,255,255,0.6)", fontWeight:"600", marginTop:"-10px", marginBottom:"16px" }}>Select your first choice and a backup date.</p>
-<style>{`@media (max-width: 600px) { .date-grid { grid-template-columns: 1fr !important; } }`}</style>
-<div className="date-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"15px", maxWidth:"100%", overflow:"hidden" }}>
+<div style={{ display:"grid", gridTemplateColumns:"1fr", gap:"15px", maxWidth:"100%", overflow:"hidden" }}>
   <div>
     <label style={{ fontSize:"12px", color:"rgba(255,255,255,0.6)", marginBottom:"8px", display:"block", fontWeight:"700" }}>First Choice</label>
     <input
@@ -3302,8 +3192,18 @@ style={{
 <div style={{position:"absolute",width:"3px",height:"3px",borderRadius:"50%",background:"rgba(93,235,241,0.6)",top:"65%",right:"8%",boxShadow:"0 0 4px rgba(93,235,241,0.5)",pointerEvents:"none"}}/>
 <div style={{position:"absolute",width:"5px",height:"5px",borderRadius:"50%",background:"rgba(125,211,252,0.5)",bottom:"15%",left:"8%",boxShadow:"0 0 5px rgba(93,235,241,0.4)",pointerEvents:"none"}}/>
 <div style={{position:"relative",zIndex:1}}>
-<div style={{ fontFamily:"'Oswald', sans-serif", fontSize:"22px", fontWeight:"300", letterSpacing:"5px", textTransform:"uppercase", background:"linear-gradient(180deg, #E0F7FF 0%, #7dd3fc 25%, #0369a1 50%, #7dd3fc 75%, #E0F7FF 100%)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", marginBottom:"8px" }}>Price Breakdown</div>
-<div style={{ fontSize:"14px", color:"rgba(125,211,252,0.85)", fontWeight:"700", background:"rgba(255,255,255,0.1)", padding:"4px 12px", borderRadius:"6px", display:"inline-block" }}>Per Visit</div>
+<div
+style={{
+    fontSize: "14px",
+    color: "#06b6d4",
+    fontWeight: "800",
+    marginBottom: "8px",
+    letterSpacing: "1.5px",
+    textTransform: "uppercase",
+  }}
+>
+Price Breakdown
+</div>
 </div>
 </div>
 <div
@@ -3316,65 +3216,194 @@ style={{
   }}
 >
 {getPriceBreakdown().length === 0 ? (
-    <div style={{ textAlign:"center", padding:"40px 20px", color:"rgba(255,255,255,0.4)", fontSize:"14px", fontWeight:"500", fontStyle:"italic" }}>
-    Select services to see pricing
-    </div>
+    <div
+    style={{
+        textAlign: "center",
+        padding: "30px 20px",
+        color: "rgba(255, 255, 255, 0.5)",
+        fontSize: "14px",
+        fontWeight: "600",
+      }}
+  >
+  Select services to see pricing
+  </div>
 ) : (
 <>
-<div style={{ marginBottom:"20px" }}>
+<div style={{ marginBottom: "20px" }}>
 {getPriceBreakdown().map((item, index) => (
-      <div key={index} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"12px 0", borderBottom: index < getPriceBreakdown().length-1 ? "1px solid rgba(93,235,241,0.12)" : "none" }}>
-        <div style={{ color:"rgba(255,255,255,0.85)", fontSize:"14px", fontWeight:"600", flex:1 }}>
-          {item.label}
-        </div>
-        <div style={{ color:"white", fontSize:"14px", fontWeight:"800" }}>
-          ${item.amount.toFixed(2)}
-        </div>
-      </div>
+      <div
+      key={index}
+      style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          padding: "12px 0",
+          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+          fontSize: "14px",
+        }}
+    >
+    <div
+    style={{
+        color: "rgba(255, 255, 255, 0.8)",
+        fontWeight: "600",
+      }}
+  >
+  {item.label}
+  </div>
+  <div style={{ color: "white", fontWeight: "800" }}>
+  ${item.amount.toFixed(2)}
+  </div>
+  </div>
 ))}
 </div>
-{getDiscount() > 0 && (
-  <div style={{ display:"flex", justifyContent:"space-between", padding:"14px 16px", marginTop:"4px", marginBottom:"8px", borderRadius:"10px", background:"linear-gradient(135deg,rgba(16,185,129,0.15),rgba(5,150,105,0.12))", border:"1px solid rgba(16,185,129,0.3)" }}>
-    <div style={{ color:"#10b981", fontSize:"14px", fontWeight:"800", textTransform:"uppercase", letterSpacing:"0.5px" }}>
-      ✓ {serviceType === "House Cleaning" ? (
-          frequency === "every-week" ? "Weekly (20% off)" :
-          frequency === "bi-weekly" ? "Bi-Weekly (15% off)" :
-          frequency === "every-3-weeks" ? "3-Week (12% off)" :
-          "4-Week (9% off)"
-        ) : "Discounts Applied"}
-    </div>
-    <div style={{ color:"#10b981", fontSize:"16px", fontWeight:"900" }}>-${getDiscount().toFixed(2)}</div>
-  </div>
-)}
-<div style={{ display:"flex", justifyContent:"space-between", padding:"16px 0", marginTop:"8px", borderTop:"2px solid rgba(93,235,241,0.3)" }}>
-  <div style={{ color:"#7dd3fc", fontSize:"14px", fontWeight:"800", textTransform:"uppercase" }}>Subtotal</div>
-  <div style={{ color:"white", fontSize:"16px", fontWeight:"900" }}>${calculateSubtotal().toFixed(2)}</div>
+<div
+style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    padding: "16px 0",
+    borderTop: "2px solid rgba(255, 255, 255, 0.2)",
+    fontSize: "15px",
+  }}
+>
+<div
+style={{
+    color: "#06b6d4",
+    fontWeight: "800",
+    textTransform: "uppercase",
+  }}
+>
+Subtotal
 </div>
+<div style={{ color: "white", fontWeight: "900" }}>
+${calculateSubtotal().toFixed(2)}
+</div>
+</div>
+{getDiscount() > 0 && (
+    <div
+    style={{
+        display: "flex",
+        justifyContent: "space-between",
+        alignItems: "center",
+        padding: "14px 16px",
+        background:
+        "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+        borderRadius: "12px",
+        marginBottom: "16px",
+        fontSize: "14px",
+        boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)",
+      }}
+  >
+  <div style={{ color: "white", fontWeight: "800" }}>
+  {serviceType === "House Cleaning" && (
+      <>
+      {frequency === "every-week" && "WEEKLY (20%)"}
+      {frequency === "bi-weekly" && "BI-WEEKLY (15%)"}
+      {frequency === "every-3-weeks" && "3-WEEK (12%)"}
+      {frequency === "every-4-weeks" && "4-WEEK (9%)"}
+      </>
+    )}
+{serviceType === "Airbnb Cleaning" &&
+  "DISCOUNTS APPLIED"}
+</div>
+<div style={{ color: "white", fontWeight: "900" }}>
+-${getDiscount().toFixed(2)}
+</div>
+</div>
+)}
 </>
 )}
 </div>
 
 {/* Price Disclaimer */}
-<div style={{ padding:"10px 20px", background:"rgba(255,255,255,0.06)", borderTop:"1px solid rgba(93,235,241,0.1)", borderBottom:"1px solid rgba(93,235,241,0.1)" }}>
-  <p style={{ color:"rgba(255,255,255,0.5)", fontSize:"11px", margin:0, fontWeight:"600", textAlign:"center", fontStyle:"italic" }}>💡 Estimate only. Final prices may vary.</p>
+<div style={{
+  padding: "12px 20px",
+  background: "rgba(255, 255, 255, 0.1)",
+  borderTop: "1px solid rgba(255, 255, 255, 0.1)",
+  borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
+}}>
+  <p style={{
+    color: "rgba(255, 255, 255, 0.8)",
+    fontSize: "11px",
+    margin: 0,
+    fontWeight: "600",
+    lineHeight: "1.4",
+    textAlign: "center",
+    fontStyle: "italic",
+  }}>
+    💡 This is an estimate. Final prices may vary based on property condition and specific requirements.
+  </p>
 </div>
 
-<div style={{ padding:"25px", background:"linear-gradient(180deg, rgba(14,165,233,0.2) 0%, rgba(3,105,161,0.25) 100%)", borderTop:"1px solid rgba(93,235,241,0.3)" }}>
-  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-    <div>
-      <div style={{ color:"white", fontWeight:"900", fontSize:"14px", letterSpacing:"1.5px", textTransform:"uppercase", marginBottom:"4px" }}>Total</div>
-      <div style={{ fontSize:"14px", color:"rgba(125,211,252,0.8)", fontWeight:"700", background:"rgba(255,255,255,0.1)", padding:"3px 10px", borderRadius:"6px" }}>per visit</div>
-    </div>
-    <div style={{ textAlign:"right" }}>
-      {(() => {
-        const minimum = serviceType === "Airbnb Cleaning" && airbnbLaundry === "no" ? 139.99 : 154.99;
-        return calculateSubtotal() - getDiscount() < minimum && (
-          <div style={{ color:"rgba(255,255,255,0.6)", fontSize:"11px", fontWeight:"700", marginBottom:"2px" }}>(Min. ${minimum.toFixed(2)})</div>
-        );
-      })()}
-      <div style={{ color:"white", fontWeight:"900", fontSize:"36px", lineHeight:"1" }}>${calculateTotal().toFixed(2)}</div>
-    </div>
-  </div>
+<div
+style={{
+    padding: "25px",
+    background: "rgba(93, 235, 241, 0.15)",
+    backdropFilter: "blur(10px)",
+    borderTop: "1px solid rgba(93, 235, 241, 0.3)",
+    boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.2)",
+  }}
+>
+<div
+style={{
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  }}
+>
+<div
+style={{
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "flex-start",
+  }}
+>
+<div
+style={{
+    color: "white",
+    fontWeight: "900",
+    fontSize: "18px",
+    letterSpacing: "1px",
+    textTransform: "uppercase",
+  }}
+>
+Total
+</div>
+{(() => {
+      const minimum =
+      serviceType === "Airbnb Cleaning" &&
+      airbnbLaundry === "no"
+      ? 139.99
+      : 154.99;
+      return (
+        calculateSubtotal() - getDiscount() < minimum && (
+          <div
+          style={{
+              color: "rgba(255,255,255,0.9)",
+              fontSize: "11px",
+              fontWeight: "700",
+              letterSpacing: "0.5px",
+              marginTop: "4px",
+            }}
+        >
+        (Min. ${minimum.toFixed(2)})
+        </div>
+      )
+  );
+})()}
+</div>
+<div
+style={{
+    color: "white",
+    fontWeight: "900",
+    fontSize: "36px",
+    textShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
+  }}
+>
+${calculateTotal().toFixed(2)}
+</div>
+</div>
+</div>
 </div>
 <div
 className="satisfaction-badge"
@@ -3401,8 +3430,6 @@ style={{
 100% SATISFACTION
 <br />
 GUARANTEED
-</div>
-</div>
 </div>
 </div>
 </div>
