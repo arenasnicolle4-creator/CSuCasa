@@ -791,6 +791,18 @@ body {
   0%, 100% { transform: translateY(0); opacity: 0.5; }
   50% { transform: translateY(-22px); opacity: 1; }
 }
+@keyframes pricePop {
+  0% { transform: scale(1); }
+  40% { transform: scale(1.18); }
+  70% { transform: scale(0.96); }
+  100% { transform: scale(1); }
+}
+@keyframes savingsPulse {
+  0%, 100% { box-shadow: 0 0 10px rgba(16,185,129,0.4), 0 0 20px rgba(16,185,129,0.2); }
+  50% { box-shadow: 0 0 18px rgba(16,185,129,0.7), 0 0 35px rgba(16,185,129,0.35); }
+}
+.price-pop { animation: pricePop 0.35s ease-out forwards; }
+.savings-pulse { animation: savingsPulse 2s ease-in-out infinite; }
 `}</style>
 
 {/* Animated Background Elements - Fixed Container */}
@@ -1718,22 +1730,45 @@ style={{
   </div>
   {/* Live price display */}
   {squareFeetRange && (
-    <div style={{ marginTop:"16px", padding:"16px 20px", borderRadius:"14px", background:"rgba(14,165,233,0.12)", border:"1px solid rgba(93,235,241,0.3)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-      <div style={{ color:"rgba(255,255,255,0.7)", fontSize:"13px", fontWeight:"600" }}>
-        {frequency && frequencyDiscounts[frequency] > 0
-          ? `After ${Math.round(frequencyDiscounts[frequency]*100)}% discount`
-          : `Base price for ${parseInt(squareFeetRange).toLocaleString()} sqft`}
-      </div>
-      <div style={{ textAlign:"right" }}>
-        {frequency && frequencyDiscounts[frequency] > 0 && (
-          <div style={{ color:"rgba(255,255,255,0.4)", fontSize:"14px", fontWeight:"700", textDecoration:"line-through" }}>
-            ${calcHouseSqftPrice(parseInt(squareFeetRange)).toFixed(2)}
+    <div style={{ marginTop:"16px" }}>
+      {/* Main price box */}
+      <div style={{ padding:"18px 22px", borderRadius:"14px", background:"rgba(14,165,233,0.12)", border:"1px solid rgba(93,235,241,0.3)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div>
+          <div style={{ color:"rgba(255,255,255,0.6)", fontSize:"12px", fontWeight:"700", letterSpacing:"1px", textTransform:"uppercase", marginBottom:"4px" }}>
+            {frequency && frequencyDiscounts[frequency] > 0 ? "Discounted base price" : "Base price"}
           </div>
-        )}
-        <div style={{ color:"#7dd3fc", fontSize:"22px", fontWeight:"900" }}>
-          ${(calcHouseSqftPrice(parseInt(squareFeetRange||500)) * (1 - (frequencyDiscounts[frequency]||0))).toFixed(2)}
+          {frequency && frequencyDiscounts[frequency] > 0 && (
+            <div style={{ color:"rgba(255,255,255,0.35)", fontSize:"15px", fontWeight:"700", textDecoration:"line-through" }}>
+              ${calcHouseSqftPrice(parseInt(squareFeetRange)).toFixed(2)}
+            </div>
+          )}
+        </div>
+        <div key={`${squareFeetRange}-${frequency}`} className="price-pop" style={{ textAlign:"right" }}>
+          <div style={{ color:"#7dd3fc", fontSize:"32px", fontWeight:"900", lineHeight:"1", textShadow:"0 0 20px rgba(125,211,252,0.5)" }}>
+            ${(calcHouseSqftPrice(parseInt(squareFeetRange||500)) * (1-(frequencyDiscounts[frequency]||0))).toFixed(2)}
+          </div>
+          <div style={{ color:"rgba(255,255,255,0.5)", fontSize:"11px", fontWeight:"600" }}>sq ft base</div>
         </div>
       </div>
+      {/* Glowing savings badge — only when discount applies */}
+      {frequency && frequencyDiscounts[frequency] > 0 && (
+        <div className="savings-pulse" style={{ marginTop:"10px", padding:"12px 20px", borderRadius:"12px", background:"linear-gradient(135deg, rgba(16,185,129,0.2), rgba(5,150,105,0.15))", border:"1.5px solid rgba(16,185,129,0.5)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+            <span style={{ fontSize:"16px" }}>✓</span>
+            <div>
+              <div style={{ color:"#34d399", fontSize:"13px", fontWeight:"800", letterSpacing:"0.5px" }}>
+                You Save {Math.round(frequencyDiscounts[frequency]*100)}%
+              </div>
+              <div style={{ color:"rgba(52,211,153,0.7)", fontSize:"11px", fontWeight:"600" }}>
+                {frequency === "every-week" ? "Every Week" : frequency === "bi-weekly" ? "Bi-Weekly" : frequency === "every-3-weeks" ? "Every 3 Weeks" : "Every 4 Weeks"} discount applied
+              </div>
+            </div>
+          </div>
+          <div style={{ color:"#34d399", fontSize:"20px", fontWeight:"900", textShadow:"0 0 12px rgba(52,211,153,0.6)" }}>
+            -${(calcHouseSqftPrice(parseInt(squareFeetRange)) * frequencyDiscounts[frequency]).toFixed(2)}
+          </div>
+        </div>
+      )}
     </div>
   )}
   </div>
