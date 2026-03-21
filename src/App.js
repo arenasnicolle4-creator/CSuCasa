@@ -793,8 +793,7 @@ body {
 }
 @keyframes pricePop {
   0% { transform: scale(1); }
-  40% { transform: scale(1.18); }
-  70% { transform: scale(0.96); }
+  50% { transform: scale(1.06); }
   100% { transform: scale(1); }
 }
 @keyframes savingsPulse {
