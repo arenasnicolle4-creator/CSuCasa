@@ -926,28 +926,33 @@ style={{
     gap: "8px",
   }}
 >
-{/* CLEANING - Thin modern all caps */}
+{/* CLEANING - Oswald thin with white glow like Su Oficina */}
 <div
-className="glow-text"
 style={{
     fontFamily: "'Oswald', sans-serif",
     fontSize: "52px",
     fontWeight: "300",
     letterSpacing: "8px",
     lineHeight: "1",
+    color: "white",
+    textShadow: "0 0 20px rgba(255,255,255,0.6), 0 0 40px rgba(93,235,241,0.3)",
   }}
 >
 CLEANING
 </div>
-{/* Su Casa - Elegant handwritten cursive */}
+{/* Su Casa - Allura cursive with metallic cyan gradient like Su Oficina gold */}
 <div
 style={{
     fontFamily: "'Allura', cursive",
     fontSize: "56px",
-    color: "#7dd3fc",
     letterSpacing: "3px",
     marginTop: "-8px",
     lineHeight: "1",
+    fontWeight: "400",
+    background: "linear-gradient(180deg, #E0F7FF 0%, #7dd3fc 25%, #0369a1 50%, #7dd3fc 75%, #E0F7FF 100%)",
+    WebkitBackgroundClip: "text",
+    WebkitTextFillColor: "transparent",
+    backgroundClip: "text",
   }}
 >
 Su Casa
@@ -957,25 +962,24 @@ Su Casa
     <>
     <div
     style={{
-        marginTop: "20px",
-        height: "3px",
+        height: "2px",
         width: "80px",
-        background:
-        "linear-gradient(90deg, transparent, #06b6d4, transparent)",
-        margin: "20px auto 15px",
+        background: "linear-gradient(90deg, transparent, #7dd3fc, transparent)",
+        margin: "14px auto 10px",
+        boxShadow: "0 0 10px rgba(125,211,252,0.5)",
       }}
   />
   <p
   style={{
-      color: "rgba(255, 255, 255, 0.9)",
-      fontSize: "16px",
+      color: "rgba(125,211,252,0.7)",
+      fontSize: "13px",
       margin: 0,
-      fontWeight: "500",
-      letterSpacing: "1px",
+      fontWeight: "700",
+      letterSpacing: "2px",
       textTransform: "uppercase",
     }}
 >
-Premium Cleaning Services
+🏠 Home Cleaning Quote
 </p>
 </>
 )}
@@ -3298,18 +3302,8 @@ style={{
 <div style={{position:"absolute",width:"3px",height:"3px",borderRadius:"50%",background:"rgba(93,235,241,0.6)",top:"65%",right:"8%",boxShadow:"0 0 4px rgba(93,235,241,0.5)",pointerEvents:"none"}}/>
 <div style={{position:"absolute",width:"5px",height:"5px",borderRadius:"50%",background:"rgba(125,211,252,0.5)",bottom:"15%",left:"8%",boxShadow:"0 0 5px rgba(93,235,241,0.4)",pointerEvents:"none"}}/>
 <div style={{position:"relative",zIndex:1}}>
-<div
-style={{
-    fontSize: "14px",
-    color: "#06b6d4",
-    fontWeight: "800",
-    marginBottom: "8px",
-    letterSpacing: "1.5px",
-    textTransform: "uppercase",
-  }}
->
-Price Breakdown
-</div>
+<div style={{ fontFamily:"'Oswald', sans-serif", fontSize:"22px", fontWeight:"300", letterSpacing:"5px", textTransform:"uppercase", background:"linear-gradient(180deg, #E0F7FF 0%, #7dd3fc 25%, #0369a1 50%, #7dd3fc 75%, #E0F7FF 100%)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent", backgroundClip:"text", marginBottom:"8px" }}>Price Breakdown</div>
+<div style={{ fontSize:"14px", color:"rgba(125,211,252,0.85)", fontWeight:"700", background:"rgba(255,255,255,0.1)", padding:"4px 12px", borderRadius:"6px", display:"inline-block" }}>Per Visit</div>
 </div>
 </div>
 <div
@@ -3322,195 +3316,65 @@ style={{
   }}
 >
 {getPriceBreakdown().length === 0 ? (
-    <div
-    style={{
-        textAlign: "center",
-        padding: "30px 20px",
-        color: "rgba(255, 255, 255, 0.5)",
-        fontSize: "14px",
-        fontWeight: "600",
-      }}
-  >
-  Select services to see pricing
-  </div>
+    <div style={{ textAlign:"center", padding:"40px 20px", color:"rgba(255,255,255,0.4)", fontSize:"14px", fontWeight:"500", fontStyle:"italic" }}>
+    Select services to see pricing
+    </div>
 ) : (
 <>
-<div style={{ marginBottom: "20px" }}>
+<div style={{ marginBottom:"20px" }}>
 {getPriceBreakdown().map((item, index) => (
-      <div
-      key={index}
-      style={{
-          display: "flex",
-          justifyContent: "space-between",
-          alignItems: "center",
-          padding: "12px 0",
-          borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-          fontSize: "14px",
-        }}
-    >
-    <div
-    style={{
-        color: "rgba(255, 255, 255, 0.8)",
-        fontWeight: "600",
-      }}
-  >
-  {item.label}
-  </div>
-  <div style={{ color: "white", fontWeight: "800" }}>
-  ${item.amount.toFixed(2)}
-  </div>
-  </div>
+      <div key={index} style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", padding:"12px 0", borderBottom: index < getPriceBreakdown().length-1 ? "1px solid rgba(93,235,241,0.12)" : "none" }}>
+        <div style={{ color:"rgba(255,255,255,0.85)", fontSize:"14px", fontWeight:"600", flex:1 }}>
+          {item.label}
+        </div>
+        <div style={{ color:"white", fontSize:"14px", fontWeight:"800" }}>
+          ${item.amount.toFixed(2)}
+        </div>
+      </div>
 ))}
 </div>
-<div
-style={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: "16px 0",
-    borderTop: "2px solid rgba(255, 255, 255, 0.2)",
-    fontSize: "15px",
-  }}
->
-<div
-style={{
-    color: "#06b6d4",
-    fontWeight: "800",
-    textTransform: "uppercase",
-  }}
->
-Subtotal
-</div>
-<div style={{ color: "white", fontWeight: "900" }}>
-${calculateSubtotal().toFixed(2)}
-</div>
-</div>
 {getDiscount() > 0 && (
-    <div
-    style={{
-        display: "flex",
-        justifyContent: "space-between",
-        alignItems: "center",
-        padding: "14px 16px",
-        background:
-        "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-        borderRadius: "12px",
-        marginBottom: "16px",
-        fontSize: "14px",
-        boxShadow: "0 4px 12px rgba(16, 185, 129, 0.3)",
-      }}
-  >
-  <div style={{ color: "white", fontWeight: "800" }}>
-  {serviceType === "House Cleaning" && (
-      <>
-      {frequency === "every-week" && "WEEKLY (20%)"}
-      {frequency === "bi-weekly" && "BI-WEEKLY (15%)"}
-      {frequency === "every-3-weeks" && "3-WEEK (12%)"}
-      {frequency === "every-4-weeks" && "4-WEEK (9%)"}
-      </>
-    )}
-{serviceType === "Airbnb Cleaning" &&
-  "DISCOUNTS APPLIED"}
-</div>
-<div style={{ color: "white", fontWeight: "900" }}>
--${getDiscount().toFixed(2)}
-</div>
-</div>
+  <div style={{ display:"flex", justifyContent:"space-between", padding:"14px 16px", marginTop:"4px", marginBottom:"8px", borderRadius:"10px", background:"linear-gradient(135deg,rgba(16,185,129,0.15),rgba(5,150,105,0.12))", border:"1px solid rgba(16,185,129,0.3)" }}>
+    <div style={{ color:"#10b981", fontSize:"14px", fontWeight:"800", textTransform:"uppercase", letterSpacing:"0.5px" }}>
+      ✓ {serviceType === "House Cleaning" ? (
+          frequency === "every-week" ? "Weekly (20% off)" :
+          frequency === "bi-weekly" ? "Bi-Weekly (15% off)" :
+          frequency === "every-3-weeks" ? "3-Week (12% off)" :
+          "4-Week (9% off)"
+        ) : "Discounts Applied"}
+    </div>
+    <div style={{ color:"#10b981", fontSize:"16px", fontWeight:"900" }}>-${getDiscount().toFixed(2)}</div>
+  </div>
 )}
+<div style={{ display:"flex", justifyContent:"space-between", padding:"16px 0", marginTop:"8px", borderTop:"2px solid rgba(93,235,241,0.3)" }}>
+  <div style={{ color:"#7dd3fc", fontSize:"14px", fontWeight:"800", textTransform:"uppercase" }}>Subtotal</div>
+  <div style={{ color:"white", fontSize:"16px", fontWeight:"900" }}>${calculateSubtotal().toFixed(2)}</div>
+</div>
 </>
 )}
 </div>
 
 {/* Price Disclaimer */}
-<div style={{
-  padding: "12px 20px",
-  background: "rgba(255, 255, 255, 0.1)",
-  borderTop: "1px solid rgba(255, 255, 255, 0.1)",
-  borderBottom: "1px solid rgba(255, 255, 255, 0.1)",
-}}>
-  <p style={{
-    color: "rgba(255, 255, 255, 0.8)",
-    fontSize: "11px",
-    margin: 0,
-    fontWeight: "600",
-    lineHeight: "1.4",
-    textAlign: "center",
-    fontStyle: "italic",
-  }}>
-    💡 This is an estimate. Final prices may vary based on property condition and specific requirements.
-  </p>
+<div style={{ padding:"10px 20px", background:"rgba(255,255,255,0.06)", borderTop:"1px solid rgba(93,235,241,0.1)", borderBottom:"1px solid rgba(93,235,241,0.1)" }}>
+  <p style={{ color:"rgba(255,255,255,0.5)", fontSize:"11px", margin:0, fontWeight:"600", textAlign:"center", fontStyle:"italic" }}>💡 Estimate only. Final prices may vary.</p>
 </div>
 
-<div
-style={{
-    padding: "25px",
-    background: "rgba(93, 235, 241, 0.15)",
-    backdropFilter: "blur(10px)",
-    borderTop: "1px solid rgba(93, 235, 241, 0.3)",
-    boxShadow: "0 -10px 30px rgba(0, 0, 0, 0.2)",
-  }}
->
-<div
-style={{
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-  }}
->
-<div
-style={{
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "flex-start",
-  }}
->
-<div
-style={{
-    color: "white",
-    fontWeight: "900",
-    fontSize: "18px",
-    letterSpacing: "1px",
-    textTransform: "uppercase",
-  }}
->
-Total
-</div>
-{(() => {
-      const minimum =
-      serviceType === "Airbnb Cleaning" &&
-      airbnbLaundry === "no"
-      ? 139.99
-      : 154.99;
-      return (
-        calculateSubtotal() - getDiscount() < minimum && (
-          <div
-          style={{
-              color: "rgba(255,255,255,0.9)",
-              fontSize: "11px",
-              fontWeight: "700",
-              letterSpacing: "0.5px",
-              marginTop: "4px",
-            }}
-        >
-        (Min. ${minimum.toFixed(2)})
-        </div>
-      )
-  );
-})()}
-</div>
-<div
-style={{
-    color: "white",
-    fontWeight: "900",
-    fontSize: "36px",
-    textShadow: "0 2px 10px rgba(0, 0, 0, 0.2)",
-  }}
->
-${calculateTotal().toFixed(2)}
-</div>
-<div style={{ color:"rgba(93,235,241,0.6)", fontSize:"11px", fontWeight:"600", marginTop:"4px" }}>per visit</div>
-</div>
-</div>
+<div style={{ padding:"25px", background:"linear-gradient(180deg, rgba(14,165,233,0.2) 0%, rgba(3,105,161,0.25) 100%)", borderTop:"1px solid rgba(93,235,241,0.3)" }}>
+  <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+    <div>
+      <div style={{ color:"white", fontWeight:"900", fontSize:"14px", letterSpacing:"1.5px", textTransform:"uppercase", marginBottom:"4px" }}>Total</div>
+      <div style={{ fontSize:"14px", color:"rgba(125,211,252,0.8)", fontWeight:"700", background:"rgba(255,255,255,0.1)", padding:"3px 10px", borderRadius:"6px" }}>per visit</div>
+    </div>
+    <div style={{ textAlign:"right" }}>
+      {(() => {
+        const minimum = serviceType === "Airbnb Cleaning" && airbnbLaundry === "no" ? 139.99 : 154.99;
+        return calculateSubtotal() - getDiscount() < minimum && (
+          <div style={{ color:"rgba(255,255,255,0.6)", fontSize:"11px", fontWeight:"700", marginBottom:"2px" }}>(Min. ${minimum.toFixed(2)})</div>
+        );
+      })()}
+      <div style={{ color:"white", fontWeight:"900", fontSize:"36px", lineHeight:"1" }}>${calculateTotal().toFixed(2)}</div>
+    </div>
+  </div>
 </div>
 <div
 className="satisfaction-badge"
