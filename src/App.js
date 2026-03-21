@@ -166,34 +166,6 @@ existingScript.onload = () => initializeAutocomplete();
 }
 }, [step]); // Re-run when step changes
 // Pricing constants
-const squareFeetOptions = [
-  { range: "0-999", label: "< 1,000", icon: "🏠", price: 71 },
-  { range: "1000-1499", label: "1,000-1,499", icon: "🏡", price: 89 },
-  { range: "1500-1999", label: "1,500-1,999", icon: "🏘️", price: 124 },
-  { range: "2000-2499", label: "2,000-2,499", icon: "🏚️", price: 144 },
-  { range: "2500-2999", label: "2,500-2,999", icon: "🏛️", price: 164 },
-  { range: "3000-3499", label: "3,000-3,499", icon: "🏰", price: 189 },
-  { range: "3500-3999", label: "3,500-3,999", icon: "🏢", price: 214 },
-  { range: "4000-4499", label: "4,000-4,499", icon: "🏬", price: 238 },
-  { range: "4500-4999", label: "4,500-4,999", icon: "🏨", price: 259 },
-  { range: "5000-5499", label: "5,000-5,499", icon: "🏩", price: 277 },
-  { range: "5500-5999", label: "5,500-5,999", icon: "🏪", price: 300 },
-  { range: "6000-6499", label: "6,000+", icon: "🏫", price: 323 },
-];
-const squareFeetPricing = {
-  "0-999": 71,
-  "1000-1499": 89,
-  "1500-1999": 124,
-  "2000-2499": 144,
-  "2500-2999": 164,
-  "3000-3499": 189,
-  "3500-3999": 214,
-  "4000-4499": 238,
-  "4500-4999": 259,
-  "5000-5499": 277,
-  "5500-5999": 300,
-  "6000-6499": 323,
-};
 
 // Anchor points: median sqft of each bracket → price from original table
 // Rate interpolates smoothly between anchors so every sqft step is slightly cheaper
