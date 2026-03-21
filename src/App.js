@@ -1594,8 +1594,8 @@ style={{
   <div
   style={{
       display: "grid",
-      gridTemplateColumns: "repeat(4, 1fr)",
-      gap: "15px",
+      gridTemplateColumns: "repeat(4, minmax(0, 1fr))",
+      gap: "8px",
     }}
 >
 {[
@@ -1611,7 +1611,7 @@ style={{
       }`}
   onClick={() => setAirbnbUnits(option.value)}
   style={{
-      padding: "20px 15px",
+      padding: "16px 8px",
       border:
       airbnbUnits === option.value
       ? "2px solid #0ea5e9"
@@ -1623,18 +1623,20 @@ style={{
       ? "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)"
       : "rgba(255, 255, 255, 0.95)",
       cursor: "pointer",
+      minWidth: 0,
     }}
 >
 <div
 style={{
-    fontSize: "14px",
+    fontSize: "12px",
     fontWeight: "800",
     color:
     airbnbUnits === option.value
     ? "white"
     : "#0c4a6e",
-    marginBottom: option.discount ? "6px" : "0",
+    marginBottom: option.discount ? "4px" : "0",
     lineHeight: "1.3",
+    wordBreak: "break-word",
   }}
 >
 {option.label}
@@ -1642,7 +1644,7 @@ style={{
 {option.discount && (
     <div
     style={{
-        fontSize: "11px",
+        fontSize: "10px",
         fontWeight: "700",
         color:
         airbnbUnits === option.value
@@ -1894,6 +1896,7 @@ style={{
 style={{
     display: "flex",
     alignItems: "center",
+    justifyContent: "space-between",
     fontSize: "13px",
     fontWeight: "800",
     color: "#06b6d4",
@@ -1903,42 +1906,54 @@ style={{
     textTransform: "uppercase",
   }}
 >
-<span>📐</span>
-Square Footage *
+  <div style={{ display:"flex", alignItems:"center", gap:"8px" }}><span>📐</span>Square Footage *</div>
+  {airbnbSquareFeet && <div style={{ fontSize:"20px", fontWeight:"900", color:"white" }}>{parseInt(airbnbSquareFeet).toLocaleString()} sqft</div>}
 </label>
-<input
-type="number"
-value={airbnbSquareFeet}
-onChange={(e) => setAirbnbSquareFeet(e.target.value)}
-placeholder="Enter square footage"
-disabled={!airbnbLaundry}
-style={{
-    width: "100%",
-    padding: "20px 24px",
-    fontSize: "17px",
-    border: "2px solid rgba(255, 255, 255, 0.2)",
-    borderRadius: "16px",
-    boxSizing: "border-box",
-    background: airbnbLaundry
-    ? "rgba(255, 255, 255, 0.95)"
-    : "rgba(255, 255, 255, 0.5)",
-    fontWeight: "500",
-    cursor: airbnbLaundry ? "text" : "not-allowed",
-    opacity: airbnbLaundry ? 1 : 0.6,
-  }}
-/>
-{!airbnbLaundry && (
-    <p
-    style={{
-        fontSize: "13px",
-        color: "rgba(255, 255, 255, 0.7)",
-        marginTop: "10px",
-        marginBottom: 0,
-        fontWeight: "600",
+{airbnbLaundry && (
+  <>
+    <input
+      type="range"
+      min="200"
+      max="6000"
+      step="50"
+      value={airbnbSquareFeet || 200}
+      onChange={e => setAirbnbSquareFeet(e.target.value)}
+      style={{
+        width: "100%", height: "8px", borderRadius: "4px", outline: "none",
+        cursor: "pointer", WebkitAppearance: "none", appearance: "none", marginBottom: "16px",
+        background: `linear-gradient(to right, #0ea5e9 0%, #0ea5e9 ${((parseInt(airbnbSquareFeet || 200) - 200) / (6000 - 200)) * 100}%, rgba(255,255,255,0.2) ${((parseInt(airbnbSquareFeet || 200) - 200) / (6000 - 200)) * 100}%, rgba(255,255,255,0.2) 100%)`
       }}
-  >
-  💡 Please select laundry service first
+    />
+    <style>{`input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#0284c7,#0ea5e9);cursor:pointer;border:3px solid white;box-shadow:0 4px 12px rgba(14,165,233,0.5);}input[type="range"]::-moz-range-thumb{width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#0284c7,#0ea5e9);cursor:pointer;border:3px solid white;}`}</style>
+  </>
+)}
+<div style={{ position:"relative" }}>
+  <input
+    type="number"
+    value={airbnbSquareFeet}
+    onChange={(e) => setAirbnbSquareFeet(e.target.value)}
+    placeholder="Enter square footage"
+    disabled={!airbnbLaundry}
+    style={{
+      width: "100%", padding: "20px 60px 20px 24px",
+      fontSize: "17px", border: "2px solid rgba(255, 255, 255, 0.2)",
+      borderRadius: "16px", boxSizing: "border-box",
+      background: airbnbLaundry ? "rgba(255, 255, 255, 0.95)" : "rgba(255, 255, 255, 0.5)",
+      fontWeight: "500", cursor: airbnbLaundry ? "text" : "not-allowed",
+      opacity: airbnbLaundry ? 1 : 0.6,
+    }}
+  />
+  <div style={{ position:"absolute", right:"20px", top:"50%", transform:"translateY(-50%)", color:"#0369a1", fontSize:"14px", fontWeight:"700", pointerEvents:"none" }}>sqft</div>
+</div>
+{airbnbLaundry && airbnbSquareFeet && (
+  <p style={{ fontSize:"13px", color:"rgba(255,255,255,0.7)", marginTop:"8px", marginBottom:0, fontWeight:"600" }}>
+    💡 Rate: ${airbnbLaundry === "yes" ? "0.095" : "0.09"}/sqft {airbnbLaundry === "yes" ? "(includes laundry)" : "(no laundry)"} = <strong style={{color:"#7dd3fc"}}>${(parseFloat(airbnbSquareFeet) * (airbnbLaundry === "yes" ? 0.095 : 0.09)).toFixed(2)}</strong>
   </p>
+)}
+{!airbnbLaundry && (
+    <p style={{ fontSize: "13px", color: "rgba(255, 255, 255, 0.7)", marginTop: "10px", marginBottom: 0, fontWeight: "600" }}>
+    💡 Please select laundry service first
+    </p>
 )}
 </div>
 {/* Beds (not Bedrooms) */}
@@ -2985,7 +3000,8 @@ style={{
   Preferred Start Date(s)
 </label>
 <p style={{ fontSize:"13px", color:"rgba(255,255,255,0.6)", fontWeight:"600", marginTop:"-10px", marginBottom:"16px" }}>Select your first choice and a backup date.</p>
-<div style={{ display:"grid", gridTemplateColumns:"1fr", gap:"15px", maxWidth:"100%", overflow:"hidden" }}>
+<style>{`@media (max-width: 600px) { .date-grid { grid-template-columns: 1fr !important; } }`}</style>
+<div className="date-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"15px", maxWidth:"100%", overflow:"hidden" }}>
   <div>
     <label style={{ fontSize:"12px", color:"rgba(255,255,255,0.6)", marginBottom:"8px", display:"block", fontWeight:"700" }}>First Choice</label>
     <input
