@@ -194,6 +194,39 @@ const squareFeetPricing = {
   "5500-5999": 300,
   "6000-6499": 323,
 };
+
+// Anchor points: median sqft of each bracket → price from original table
+// Rate interpolates smoothly between anchors so every sqft step is slightly cheaper
+const SQFT_ANCHORS = [
+  { sqft: 499.5,  price: 71  },
+  { sqft: 1249.5, price: 89  },
+  { sqft: 1749.5, price: 124 },
+  { sqft: 2249.5, price: 144 },
+  { sqft: 2749.5, price: 164 },
+  { sqft: 3249.5, price: 189 },
+  { sqft: 3749.5, price: 214 },
+  { sqft: 4249.5, price: 238 },
+  { sqft: 4749.5, price: 259 },
+  { sqft: 5249.5, price: 277 },
+  { sqft: 5749.5, price: 300 },
+  { sqft: 6249.5, price: 323 },
+].map(a => ({ ...a, rate: a.price / a.sqft }));
+
+const calcHouseSqftPrice = (sqft) => {
+  if (!sqft || sqft <= 0) return 0;
+  if (sqft <= SQFT_ANCHORS[0].sqft) return sqft * SQFT_ANCHORS[0].rate;
+  if (sqft >= SQFT_ANCHORS[SQFT_ANCHORS.length-1].sqft) return sqft * SQFT_ANCHORS[SQFT_ANCHORS.length-1].rate;
+  for (let i = 0; i < SQFT_ANCHORS.length - 1; i++) {
+    const lo = SQFT_ANCHORS[i], hi = SQFT_ANCHORS[i+1];
+    if (sqft >= lo.sqft && sqft <= hi.sqft) {
+      const t = (sqft - lo.sqft) / (hi.sqft - lo.sqft);
+      const rate = lo.rate + t * (hi.rate - lo.rate);
+      return sqft * rate;
+    }
+  }
+  return 0;
+};
+
 const frequencyDiscounts = {
   "every-week": 0.2,
   "bi-weekly": 0.15,
@@ -221,9 +254,9 @@ const calculateSubtotal = () => {
   total += addOns.pets * 10;
   total += addOns.baseTrimFeet * 0.54;
 } else {
-// House Cleaning pricing
-if (squareFeetRange && squareFeetPricing[squareFeetRange]) {
-  total += squareFeetPricing[squareFeetRange];
+// House Cleaning pricing — smooth interpolated rate
+if (squareFeetRange) {
+  total += calcHouseSqftPrice(parseInt(squareFeetRange));
 }
 total += bedrooms * 16;
 const fullBaths = Math.floor(bathrooms);
@@ -324,13 +357,11 @@ items.push({
     amount: addOns.baseTrimFeet * 0.54,
   });
 } else {
-if (squareFeetRange && squareFeetPricing[squareFeetRange]) {
-  const option = squareFeetOptions.find(
-    (opt) => opt.range === squareFeetRange
-  );
+if (squareFeetRange) {
+  const sqft = parseInt(squareFeetRange);
 items.push({
-    label: `${option.label} sq ft`,
-    amount: squareFeetPricing[squareFeetRange],
+    label: `${sqft.toLocaleString()} sq ft`,
+    amount: calcHouseSqftPrice(sqft),
   });
 }
 if (bedrooms > 0) {
@@ -1663,76 +1694,77 @@ style={{
 {/* HOUSE CLEANING FIELDS */}
 {serviceType === "House Cleaning" && (
     <>
-    {/* Square Feet - Card Grid */}
+    {/* Square Feet - Slider */}
     <div style={{ marginBottom: "35px" }}>
     <label
     style={{
         display: "flex",
         alignItems: "center",
+        justifyContent: "space-between",
         fontSize: "13px",
         fontWeight: "800",
         color: "#06b6d4",
-        marginBottom: "15px",
+        marginBottom: "20px",
         gap: "8px",
         letterSpacing: "1px",
         textTransform: "uppercase",
+        flexWrap: "wrap",
       }}
   >
-  <span>📐</span>
-  Home Size *
+    <div style={{ display:"flex", alignItems:"center", gap:"8px" }}><span>📐</span>Home Size *</div>
+    <div style={{ fontSize:"22px", fontWeight:"900", color:"white" }}>{parseInt(squareFeetRange||500).toLocaleString()} sqft</div>
   </label>
-  <div
-  style={{
-      display: "grid",
-      gridTemplateColumns:
-      "repeat(auto-fill, minmax(140px, 1fr))",
-      gap: "15px",
-    }}
->
-{squareFeetOptions.map((option) => (
-      <div
-      key={option.range}
-      className={`service-card ${
-          squareFeetRange === option.range ? "selected" : ""
-        }`}
-    onClick={() => setSquareFeetRange(option.range)}
+  <input
+    type="range"
+    min="500"
+    max="6500"
+    step="50"
+    value={squareFeetRange || 500}
+    onChange={e => setSquareFeetRange(e.target.value)}
     style={{
-        padding: "22px 15px",
-        border:
-        squareFeetRange === option.range
-        ? "2px solid #0ea5e9"
-        : "2px solid rgba(255, 255, 255, 0.2)",
-        borderRadius: "18px",
-        textAlign: "center",
-        background:
-        squareFeetRange === option.range
-        ? "linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)"
-        : "rgba(255, 255, 255, 0.95)",
-      }}
-  >
-  <div
-  style={{ fontSize: "36px", marginBottom: "10px" }}
-  >
-  {option.icon}
-  </div>
-  <div
-  style={{
-      fontSize: "13px",
-      fontWeight: "800",
-      color:
-      squareFeetRange === option.range
-      ? "white"
-      : "#0c4a6e",
-      lineHeight: "1.3",
-      letterSpacing: "0.3px",
+      width:"100%", height:"8px", borderRadius:"4px", outline:"none",
+      cursor:"pointer", WebkitAppearance:"none", appearance:"none", marginBottom:"16px",
+      background:`linear-gradient(to right, #0ea5e9 0%, #0ea5e9 ${((parseInt(squareFeetRange||500)-500)/(6500-500))*100}%, rgba(255,255,255,0.2) ${((parseInt(squareFeetRange||500)-500)/(6500-500))*100}%, rgba(255,255,255,0.2) 100%)`
     }}
->
-{option.label}
-</div>
-</div>
-))}
-</div>
-</div>
+  />
+  <div style={{ position:"relative" }}>
+    <input
+      type="number"
+      min="500"
+      max="6500"
+      value={squareFeetRange || ""}
+      onChange={e => setSquareFeetRange(e.target.value)}
+      placeholder="Enter square footage..."
+      style={{
+        width:"100%", padding:"20px 60px 20px 24px",
+        fontSize:"17px", border:"2px solid rgba(255,255,255,0.2)",
+        borderRadius:"16px", boxSizing:"border-box",
+        background:"rgba(255,255,255,0.95)", fontWeight:"500", color:"#0c4a6e",
+      }}
+    />
+    <div style={{ position:"absolute", right:"20px", top:"50%", transform:"translateY(-50%)", color:"#0369a1", fontSize:"14px", fontWeight:"700", pointerEvents:"none" }}>sqft</div>
+  </div>
+  {/* Live price display */}
+  {squareFeetRange && (
+    <div style={{ marginTop:"16px", padding:"16px 20px", borderRadius:"14px", background:"rgba(14,165,233,0.12)", border:"1px solid rgba(93,235,241,0.3)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+      <div style={{ color:"rgba(255,255,255,0.7)", fontSize:"13px", fontWeight:"600" }}>
+        {frequency && frequencyDiscounts[frequency] > 0
+          ? `After ${Math.round(frequencyDiscounts[frequency]*100)}% discount`
+          : `Base price for ${parseInt(squareFeetRange).toLocaleString()} sqft`}
+      </div>
+      <div style={{ textAlign:"right" }}>
+        {frequency && frequencyDiscounts[frequency] > 0 && (
+          <div style={{ color:"rgba(255,255,255,0.4)", fontSize:"14px", fontWeight:"700", textDecoration:"line-through" }}>
+            ${calcHouseSqftPrice(parseInt(squareFeetRange)).toFixed(2)}
+          </div>
+        )}
+        <div style={{ color:"#7dd3fc", fontSize:"22px", fontWeight:"900" }}>
+          ${(calcHouseSqftPrice(parseInt(squareFeetRange||500)) * (1 - (frequencyDiscounts[frequency]||0))).toFixed(2)}
+        </div>
+      </div>
+    </div>
+  )}
+  </div>
 {/* Bedrooms */}
 <div style={{ marginBottom: "35px" }}>
 <label
@@ -1945,11 +1977,6 @@ style={{
   />
   <div style={{ position:"absolute", right:"20px", top:"50%", transform:"translateY(-50%)", color:"#0369a1", fontSize:"14px", fontWeight:"700", pointerEvents:"none" }}>sqft</div>
 </div>
-{airbnbLaundry && airbnbSquareFeet && (
-  <p style={{ fontSize:"13px", color:"rgba(255,255,255,0.7)", marginTop:"8px", marginBottom:0, fontWeight:"600" }}>
-    💡 Rate: ${airbnbLaundry === "yes" ? "0.095" : "0.09"}/sqft {airbnbLaundry === "yes" ? "(includes laundry)" : "(no laundry)"} = <strong style={{color:"#7dd3fc"}}>${(parseFloat(airbnbSquareFeet) * (airbnbLaundry === "yes" ? 0.095 : 0.09)).toFixed(2)}</strong>
-  </p>
-)}
 {!airbnbLaundry && (
     <p style={{ fontSize: "13px", color: "rgba(255, 255, 255, 0.7)", marginTop: "10px", marginBottom: 0, fontWeight: "600" }}>
     💡 Please select laundry service first
