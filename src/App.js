@@ -19,7 +19,13 @@ export default function App() {
   // Form state
   const [step, setStep] = useState(1);
 
-  const mobileBarRef = useRef(null);
+  // Load EmailJS SDK
+  useEffect(() => {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js';
+    script.onload = () => window.emailjs.init('ZsAm6x2gjm0hFV69o');
+    document.head.appendChild(script);
+  }, []);
   const [mobileBarHeight, setMobileBarHeight] = useState(0);
   useEffect(() => {
     const el = mobileBarRef.current;
@@ -395,84 +401,82 @@ const handleContinueToAddOns = () => {
 }
 };
 const handleSubmit = async () => {
-  // Prepare form data for FormSubmit
-  const formData = new FormData();
-  
-  // Add all form fields
-  formData.append('_subject', 'NEW BOOKING REQUEST - Cleaning Su Casa');
-  formData.append('First Name', firstName);
-  formData.append('Last Name', lastName);
-  formData.append('Phone', phone);
-  formData.append('Email', email);
-  formData.append('Street Address', address);
-  formData.append('Apt/Suite/Unit', address2 || 'N/A');
-  formData.append('City', city);
-  formData.append('State', state);
-  formData.append('ZIP', zip);
-  formData.append('Service Type', serviceType);
-  formData.append('Frequency', frequency);
-  
-  if (serviceType === "House Cleaning") {
-    formData.append('Square Feet Range', squareFeetRange);
-    formData.append('Bedrooms', bedrooms);
-  } else {
-    formData.append('Square Feet', airbnbSquareFeet);
-    formData.append('Laundry', airbnbLaundry);
-    formData.append('Beds', airbnbBeds);
-    formData.append('Units', airbnbUnits);
-  }
-  
-  formData.append('Bathrooms', bathrooms);
-  
-  // Add-ons
-  const addOnsList = [];
-  if (addOns.fridge) addOnsList.push('Inside Fridge');
-  if (addOns.oven) addOnsList.push('Inside Oven');
-  if (addOns.microwave) addOnsList.push('Inside Microwave');
-  if (addOns.deepClean > 0) addOnsList.push(`Deep Clean +${addOns.deepClean}hr`);
-  if (addOns.linens > 0) addOnsList.push(`${addOns.linens} Linen Set(s)`);
-  if (addOns.dishes) addOnsList.push('Clean Dishes');
-  if (addOns.windows > 0) addOnsList.push(`${addOns.windows} Window(s)`);
-  if (addOns.pets > 0) addOnsList.push(`${addOns.pets} Pet(s)`);
-  if (addOns.baseTrimFeet > 0) addOnsList.push(`Base Trim (${addOns.baseTrimFeet} ft)`);
-  formData.append('Add-Ons', addOnsList.join(', ') || 'None');
-  
-  formData.append('Key Areas', keyAreas || 'None specified');
-  formData.append('Additional Notes', additionalNotes || 'None');
-  formData.append('Preferred Day 1', preferredDay1 || 'Not specified');
-  formData.append('Preferred Day 2', preferredDay2 || 'Not specified');
-  formData.append('Preferred Times', timeWindows.length ? timeWindows.join(', ') : 'Not specified');
-  
-  // Pricing
-  formData.append('Subtotal', `$${calculateSubtotal().toFixed(2)}`);
-  formData.append('Discount', `-$${getDiscount().toFixed(2)}`);
-  formData.append('TOTAL PRICE', `$${calculateTotal().toFixed(2)}`);
+  // Build individual add-on lines
+  const addonLines = [];
+  if (addOns.fridge)           addonLines.push('• Inside Fridge');
+  if (addOns.oven)             addonLines.push('• Inside Oven');
+  if (addOns.microwave)        addonLines.push('• Inside Microwave');
+  if (addOns.deepClean > 0)    addonLines.push(`• Deep Clean +${addOns.deepClean}hr`);
+  if (addOns.linens > 0)       addonLines.push(`• ${addOns.linens} Linen Set(s)`);
+  if (addOns.dishes)           addonLines.push('• Clean Dishes');
+  if (addOns.windows > 0)      addonLines.push(`• ${addOns.windows} Window(s)`);
+  if (addOns.pets > 0)         addonLines.push(`• ${addOns.pets} Pet(s)`);
+  if (addOns.baseTrimFeet > 0) addonLines.push(`• Base Trim (${addOns.baseTrimFeet} ft)`);
 
-  // FormSubmit requires these for AJAX submissions
-  formData.append('_captcha', 'false'); // Disable captcha
-  formData.append('_template', 'table'); // Use table format for email
+  const templateParams = {
+    // Contact
+    first_name:       firstName,
+    last_name:        lastName,
+    phone:            phone,
+    email:            email,
+    // Address
+    address:          address,
+    address2:         address2 || 'N/A',
+    city:             city,
+    state:            state,
+    zip:              zip,
+    // Service
+    service_type:     serviceType,
+    frequency:        frequency,
+    // House Cleaning specific
+    sqft_range:       serviceType === "House Cleaning" ? squareFeetRange : 'N/A',
+    bedrooms:         serviceType === "House Cleaning" ? bedrooms : 'N/A',
+    // Airbnb specific
+    airbnb_sqft:      serviceType === "Airbnb Cleaning" ? airbnbSquareFeet : 'N/A',
+    airbnb_laundry:   serviceType === "Airbnb Cleaning" ? airbnbLaundry : 'N/A',
+    airbnb_beds:      serviceType === "Airbnb Cleaning" ? airbnbBeds : 'N/A',
+    airbnb_units:     serviceType === "Airbnb Cleaning" ? airbnbUnits : 'N/A',
+    // Shared
+    bathrooms:        bathrooms,
+    // Add-ons — each as its own line, plus a combined block
+    addons_list:      addonLines.length > 0 ? addonLines.join('\n') : 'None',
+    addons_count:     addonLines.length,
+    // Notes & scheduling
+    key_areas:        keyAreas || 'None specified',
+    additional_notes: additionalNotes || 'None',
+    preferred_date_1: preferredDay1 || 'Not specified',
+    preferred_date_2: preferredDay2 || 'Not specified',
+    preferred_times:  timeWindows.length ? timeWindows.join(', ') : 'Not specified',
+    // Pricing
+    subtotal:         `$${calculateSubtotal().toFixed(2)}`,
+    discount:         getDiscount() > 0 ? `-$${getDiscount().toFixed(2)}` : 'None',
+    discount_label:   getDiscount() > 0 ? (() => {
+                        if (serviceType === "House Cleaning") {
+                          if (frequency === "every-week")    return "Weekly Discount (20%)";
+                          if (frequency === "bi-weekly")     return "Bi-Weekly Discount (15%)";
+                          if (frequency === "every-3-weeks") return "3-Week Discount (12%)";
+                          if (frequency === "every-4-weeks") return "4-Week Discount (9%)";
+                        }
+                        return "Discount Applied";
+                      })() : 'N/A',
+    total_price:      `$${calculateTotal().toFixed(2)}`,
+  };
 
   try {
-    // Send to FormSubmit with proper headers
-    const response = await fetch('https://formsubmit.co/ajax/AkCleaningSuCasa@gmail.com', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Accept': 'application/json'
-      },
-      body: JSON.stringify(Object.fromEntries(formData))
-    });
-
-    const result = await response.json();
-    
-    if (result.success) {
-      // Show success modal
+    // emailjs.send(serviceID, templateID, params, publicKey)
+    const result = await window.emailjs.send(
+      'service_8bkln92',
+      'template_ss9j71d',
+      templateParams,
+      'ZsAm6x2gjm0hFV69o'
+    );
+    if (result.status === 200) {
       setShowSuccessModal(true);
     } else {
       alert('There was an error submitting your booking. Please try again or call us directly.');
     }
   } catch (error) {
-    console.error('Submission error:', error);
+    console.error('EmailJS error:', error);
     alert('There was an error submitting your booking. Please try again or call us directly.');
   }
 };
