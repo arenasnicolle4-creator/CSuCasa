@@ -414,6 +414,11 @@ const handleSubmit = async () => {
   if (addOns.pets > 0)         addonLines.push(`• ${addOns.pets} Pet(s)`);
   if (addOns.baseTrimFeet > 0) addonLines.push(`• Base Trim (${addOns.baseTrimFeet} ft)`);
 
+  // Build full price breakdown as formatted string
+  const breakdownLines = getPriceBreakdown().map(item =>
+    `${item.label.padEnd(30, '.')} $${item.amount.toFixed(2)}`
+  ).join('\n');
+
   const templateParams = {
     // Contact
     first_name:       firstName,
@@ -429,26 +434,26 @@ const handleSubmit = async () => {
     // Service
     service_type:     serviceType,
     frequency:        frequency,
-    // House Cleaning specific
+    // House Cleaning specific (bathrooms included here)
     sqft_range:       serviceType === "House Cleaning" ? squareFeetRange : 'N/A',
-    bedrooms:         serviceType === "House Cleaning" ? bedrooms : 'N/A',
-    // Airbnb specific
+    bedrooms:         serviceType === "House Cleaning" ? String(bedrooms) : 'N/A',
+    house_bathrooms:  serviceType === "House Cleaning" ? String(bathrooms) : 'N/A',
+    // Airbnb specific (bathrooms included here)
     airbnb_sqft:      serviceType === "Airbnb Cleaning" ? airbnbSquareFeet : 'N/A',
     airbnb_laundry:   serviceType === "Airbnb Cleaning" ? airbnbLaundry : 'N/A',
-    airbnb_beds:      serviceType === "Airbnb Cleaning" ? airbnbBeds : 'N/A',
+    airbnb_beds:      serviceType === "Airbnb Cleaning" ? String(airbnbBeds) : 'N/A',
+    airbnb_bathrooms: serviceType === "Airbnb Cleaning" ? String(bathrooms) : 'N/A',
     airbnb_units:     serviceType === "Airbnb Cleaning" ? airbnbUnits : 'N/A',
-    // Shared
-    bathrooms:        bathrooms,
-    // Add-ons — each as its own line, plus a combined block
-    addons_list:      addonLines.length > 0 ? addonLines.join('\n') : 'None',
-    addons_count:     addonLines.length,
+    // Add-ons
+    addons_list:      addonLines.length > 0 ? addonLines.join('\n') : 'None selected',
     // Notes & scheduling
     key_areas:        keyAreas || 'None specified',
     additional_notes: additionalNotes || 'None',
     preferred_date_1: preferredDay1 || 'Not specified',
     preferred_date_2: preferredDay2 || 'Not specified',
     preferred_times:  timeWindows.length ? timeWindows.join(', ') : 'Not specified',
-    // Pricing
+    // Pricing — full line-item breakdown
+    price_breakdown:  breakdownLines || 'No items',
     subtotal:         `$${calculateSubtotal().toFixed(2)}`,
     discount:         getDiscount() > 0 ? `-$${getDiscount().toFixed(2)}` : 'None',
     discount_label:   getDiscount() > 0 ? (() => {
