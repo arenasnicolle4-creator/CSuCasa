@@ -27,6 +27,7 @@ export default function App() {
     document.head.appendChild(script);
   }, []);
   const [mobileBarHeight, setMobileBarHeight] = useState(0);
+  const mobileBarRef = useRef(null);
   useEffect(() => {
     const el = mobileBarRef.current;
     if (!el) return;
