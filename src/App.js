@@ -548,6 +548,9 @@ input:focus, textarea:focus, select:focus {
   border-color: #0ea5e9;
   box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
 }
+input, textarea, select { font-size: 16px !important; touch-action: manipulation; }
+button { touch-action: manipulation; }
+html, body, * { -webkit-text-size-adjust: 100% !important; text-size-adjust: 100% !important; }
 input[type="date"] {
   -webkit-appearance: none;
   appearance: none;
@@ -1763,7 +1766,7 @@ style={{
               </div>
             </div>
           </div>
-          <div style={{ color:"#34d399", fontSize:"20px", fontWeight:"900", textShadow:"0 0 12px rgba(52,211,153,0.6)" }}>
+          <div style={{ color:"#34d399", fontSize:"20px", fontWeight:"900", textShadow:"0 0 12px rgba(52,211,153,0.6)", whiteSpace:"nowrap", flexShrink:0 }}>
             -${(calcHouseSqftPrice(parseInt(squareFeetRange)) * frequencyDiscounts[frequency]).toFixed(2)}
           </div>
         </div>
