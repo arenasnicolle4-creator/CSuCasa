@@ -3508,6 +3508,7 @@ style={{
 >
 ${calculateTotal().toFixed(2)}
 </div>
+<div style={{ color:"rgba(93,235,241,0.6)", fontSize:"11px", fontWeight:"600", marginTop:"4px" }}>per visit</div>
 </div>
 </div>
 </div>
