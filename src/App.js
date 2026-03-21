@@ -1736,7 +1736,7 @@ style={{
       {/* Main price box */}
       <div style={{ padding:"18px 22px", borderRadius:"14px", background:"rgba(14,165,233,0.12)", border:"1px solid rgba(93,235,241,0.3)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
         <div style={{ color:"rgba(255,255,255,0.6)", fontSize:"12px", fontWeight:"700", letterSpacing:"1px", textTransform:"uppercase" }}>
-          {frequency && frequencyDiscounts[frequency] > 0 ? "Your discounted base price" : "Base price"}
+          {frequency && frequencyDiscounts[frequency] > 0 ? "Your discounted base cost" : "Base cost"}
         </div>
         <div key={`${squareFeetRange}-${frequency}`} className="price-pop" style={{ textAlign:"right" }}>
           {frequency && frequencyDiscounts[frequency] > 0 && (
@@ -1747,7 +1747,7 @@ style={{
           <div style={{ color:"#7dd3fc", fontSize:"32px", fontWeight:"900", lineHeight:"1", textShadow:"0 0 20px rgba(125,211,252,0.5)" }}>
             ${(calcHouseSqftPrice(parseInt(squareFeetRange||500)) * (1-(frequencyDiscounts[frequency]||0))).toFixed(2)}
           </div>
-          <div style={{ color:"rgba(255,255,255,0.4)", fontSize:"11px", fontWeight:"600" }}>sq ft base</div>
+          <div style={{ color:"rgba(255,255,255,0.4)", fontSize:"11px", fontWeight:"600" }}>base cost</div>
         </div>
       </div>
       {/* Glowing savings badge — only when discount applies */}
@@ -2000,8 +2000,7 @@ style={{
     <div style={{ marginTop:"16px" }}>
       <div style={{ padding:"18px 22px", borderRadius:"14px", background:"rgba(14,165,233,0.12)", border:"1px solid rgba(93,235,241,0.3)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
         <div style={{ color:"rgba(255,255,255,0.6)", fontSize:"12px", fontWeight:"700", letterSpacing:"1px", textTransform:"uppercase" }}>
-          {discountPercent > 0 ? "Discounted sqft cost" : "Sqft cost"}<br/>
-          <span style={{ fontSize:"10px", color:"rgba(255,255,255,0.4)", textTransform:"none", fontWeight:"600" }}>${rate}/sqft {airbnbLaundry === "yes" ? "(w/ laundry)" : "(no laundry)"}</span>
+          {discountPercent > 0 ? "Discounted base cost" : "Base cost"}
         </div>
         <div key={`${airbnbSquareFeet}-${airbnbLaundry}-${discountPercent}`} className="price-pop" style={{ textAlign:"right" }}>
           {discountPercent > 0 && (
@@ -2012,7 +2011,7 @@ style={{
           <div style={{ color:"#7dd3fc", fontSize:"32px", fontWeight:"900", lineHeight:"1", textShadow:"0 0 20px rgba(125,211,252,0.5)" }}>
             ${discountedSqftCost.toFixed(2)}
           </div>
-          <div style={{ color:"rgba(255,255,255,0.4)", fontSize:"11px", fontWeight:"600" }}>sqft cost</div>
+          <div style={{ color:"rgba(255,255,255,0.4)", fontSize:"11px", fontWeight:"600" }}>base cost</div>
         </div>
       </div>
       {discountPercent > 0 && (
