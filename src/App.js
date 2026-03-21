@@ -1989,6 +1989,53 @@ style={{
     💡 Please select laundry service first
     </p>
 )}
+{/* Live price display for Airbnb sqft */}
+{airbnbLaundry && airbnbSquareFeet && (() => {
+  const rate = airbnbLaundry === "yes" ? 0.095 : 0.09;
+  const sqftCost = parseFloat(airbnbSquareFeet) * rate;
+  const discountPercent = (frequency === "4-6" ? 0.03 : frequency === "7-9" ? 0.06 : frequency === "10+" ? 0.075 : 0) +
+    (airbnbUnits === "2" ? 0.03 : airbnbUnits === "3" ? 0.05 : airbnbUnits === "4+" ? 0.07 : 0);
+  const discountedSqftCost = sqftCost * (1 - discountPercent);
+  return (
+    <div style={{ marginTop:"16px" }}>
+      <div style={{ padding:"18px 22px", borderRadius:"14px", background:"rgba(14,165,233,0.12)", border:"1px solid rgba(93,235,241,0.3)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+        <div style={{ color:"rgba(255,255,255,0.6)", fontSize:"12px", fontWeight:"700", letterSpacing:"1px", textTransform:"uppercase" }}>
+          {discountPercent > 0 ? "Discounted sqft cost" : "Sqft cost"}<br/>
+          <span style={{ fontSize:"10px", color:"rgba(255,255,255,0.4)", textTransform:"none", fontWeight:"600" }}>${rate}/sqft {airbnbLaundry === "yes" ? "(w/ laundry)" : "(no laundry)"}</span>
+        </div>
+        <div key={`${airbnbSquareFeet}-${airbnbLaundry}-${discountPercent}`} className="price-pop" style={{ textAlign:"right" }}>
+          {discountPercent > 0 && (
+            <div style={{ color:"rgba(255,255,255,0.35)", fontSize:"12px", fontWeight:"600", textDecoration:"line-through", marginBottom:"2px" }}>
+              was ${sqftCost.toFixed(2)}
+            </div>
+          )}
+          <div style={{ color:"#7dd3fc", fontSize:"32px", fontWeight:"900", lineHeight:"1", textShadow:"0 0 20px rgba(125,211,252,0.5)" }}>
+            ${discountedSqftCost.toFixed(2)}
+          </div>
+          <div style={{ color:"rgba(255,255,255,0.4)", fontSize:"11px", fontWeight:"600" }}>sqft cost</div>
+        </div>
+      </div>
+      {discountPercent > 0 && (
+        <div className="savings-pulse" style={{ marginTop:"10px", padding:"12px 20px", borderRadius:"12px", background:"linear-gradient(135deg, rgba(16,185,129,0.2), rgba(5,150,105,0.15))", border:"1.5px solid rgba(16,185,129,0.5)", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
+          <div style={{ display:"flex", alignItems:"center", gap:"8px" }}>
+            <span style={{ fontSize:"16px" }}>✓</span>
+            <div>
+              <div style={{ color:"#34d399", fontSize:"13px", fontWeight:"800", letterSpacing:"0.5px" }}>
+                You Save {Math.round(discountPercent*100)}%
+              </div>
+              <div style={{ color:"rgba(52,211,153,0.7)", fontSize:"11px", fontWeight:"600" }}>
+                Volume discount applied
+              </div>
+            </div>
+          </div>
+          <div style={{ color:"#34d399", fontSize:"20px", fontWeight:"900", textShadow:"0 0 12px rgba(52,211,153,0.6)", whiteSpace:"nowrap", flexShrink:0 }}>
+            -${(sqftCost * discountPercent).toFixed(2)}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+})()}
 </div>
 {/* Beds (not Bedrooms) */}
 <div style={{ marginBottom: "35px" }}>
