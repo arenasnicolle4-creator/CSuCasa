@@ -3258,8 +3258,7 @@ Terms & Conditions
     style={{
         position: "sticky",
         top: "20px",
-        height: "fit-content",
-        maxHeight: "calc(100vh - 40px)",
+        height: "calc(100vh - 40px)",
         display: "flex",
         flexDirection: "column",
       }}
@@ -3281,7 +3280,7 @@ Terms & Conditions
       border: "1px solid rgba(93, 235, 241, 0.2)",
       display: "flex",
       flexDirection: "column",
-      maxHeight: "100%",
+      height: "100%",
     }}
 >
 <div
