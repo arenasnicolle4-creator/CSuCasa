@@ -78,11 +78,7 @@ const [timeWindows, setTimeWindows] = useState([]);
 const [submissionType, setSubmissionType] = useState(""); // 'quote' | 'instant_book'
 const [isSubmitting, setIsSubmitting] = useState(false);
 
-// Instant Book: 10% off first 5 cleanings
-const getInstantBookSavings = () => {
-  if (submissionType !== 'instant_book') return 0;
-  return calculateTotal() * 0.10;
-};
+// Instant Book: 10% off first 5 cleanings — calculated inline where needed
 // Load Google Places API and initialize autocomplete
 useEffect(() => {
     // Only initialize when on step 2 and input is available
