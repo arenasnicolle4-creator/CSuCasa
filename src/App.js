@@ -13,6 +13,7 @@ import {
 // ===== CONFIGURATION =====
 // Google Places API Key - for address autocomplete
 const GOOGLE_PLACES_API_KEY = "AIzaSyB18lv_Rulnv7jjFrM0PP57bCLO4U4_A_I";
+const CLEANSYNC_WEBHOOK_URL = "https://cleansync-beryl.vercel.app/api/quotes";
 export default function App() {
   const formTopRef = useRef(null);
   const addressInputRef = useRef(null);
@@ -74,6 +75,14 @@ const [preferredDay2, setPreferredDay2] = useState("");
 const [timeFrom, setTimeFrom] = useState("8:00 AM");
 const [timeTo, setTimeTo] = useState("5:00 PM");
 const [timeWindows, setTimeWindows] = useState([]);
+const [submissionType, setSubmissionType] = useState(""); // 'quote' | 'instant_book'
+const [isSubmitting, setIsSubmitting] = useState(false);
+
+// Instant Book: 10% off first 5 cleanings
+const getInstantBookSavings = () => {
+  if (submissionType !== 'instant_book') return 0;
+  return calculateTotal() * 0.10;
+};
 // Load Google Places API and initialize autocomplete
 useEffect(() => {
     // Only initialize when on step 2 and input is available
@@ -404,7 +413,9 @@ const handleContinueToAddOns = () => {
   }, 100);
 }
 };
-const handleSubmit = async () => {
+const handleSubmit = async (type = 'quote') => {
+  setSubmissionType(type);
+  setIsSubmitting(true);
   // Build individual add-on lines
   const addonLines = [];
   if (addOns.fridge)           addonLines.push('• Inside Fridge');
@@ -469,9 +480,21 @@ const handleSubmit = async () => {
                         return "Discount Applied";
                       })() : 'N/A',
     total_price:      `$${calculateTotal().toFixed(2)}`,
+    submission_type:  type,
+    instant_book_savings: type === 'instant_book' ? (calculateTotal() * 0.10).toFixed(2) : '0',
   };
 
   try {
+    // Post to CleanSync platform (non-blocking — don't fail form if this fails)
+    const cleanSyncPayload = {
+      ...templateParams,
+      instant_book_savings: type === 'instant_book' ? calculateTotal() * 0.10 : 0,
+    };
+    fetch(CLEANSYNC_WEBHOOK_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(cleanSyncPayload),
+    }).catch(() => {}); // silent fail — don't block the form
     // emailjs.send(serviceID, templateID, params, publicKey)
     const result = await window.emailjs.send(
       'service_8bkln92',
@@ -487,6 +510,8 @@ const handleSubmit = async () => {
   } catch (error) {
     console.error('EmailJS error:', error);
     alert('There was an error submitting your booking. Please try again or call us directly.');
+  } finally {
+    setIsSubmitting(false);
   }
 };
 return (
@@ -3150,10 +3175,7 @@ style={{
 onClick={() => {
   setStep(2);
   setTimeout(() => {
-    window.scrollTo({
-      top: 0,
-      behavior: "smooth",
-    });
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }, 100);
 }}
 style={{
@@ -3173,27 +3195,82 @@ style={{
 >
 ← Back
 </button>
-<button
-onClick={handleSubmit}
-style={{
-    flex: 2,
-    padding: "20px",
-    background:
-    "linear-gradient(135deg, #06b6d4 0%, #0ea5e9 100%)",
-    color: "white",
-    border: "none",
-    borderRadius: "16px",
-    fontSize: "18px",
-    fontWeight: "800",
-    cursor: "pointer",
-    transition: "all 0.3s ease",
-    boxShadow: "0 15px 40px rgba(6, 182, 212, 0.4)",
-    letterSpacing: "0.5px",
-    textTransform: "uppercase",
-  }}
->
-Book Your Clean! 🎉
-</button>
+</div>
+
+{/* Instant Book CTA — 10% off first 5 cleans */}
+<div style={{
+  marginTop: "16px",
+  padding: "20px",
+  background: "linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.12) 100%)",
+  border: "2px solid rgba(16,185,129,0.4)",
+  borderRadius: "16px",
+}}>
+  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
+    <div style={{ fontSize: "24px" }}>⚡</div>
+    <div>
+      <div style={{ color: "#10b981", fontWeight: "900", fontSize: "16px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+        Instant Book — Save 10%
+      </div>
+      <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "13px", fontWeight: "600", marginTop: "2px" }}>
+        Lock in 10% off your first 5 cleanings when you book now
+      </div>
+    </div>
+  </div>
+  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(0,0,0,0.2)", borderRadius: "10px", marginBottom: "14px" }}>
+    <span style={{ color: "rgba(255,255,255,0.8)", fontSize: "13px", fontWeight: "700" }}>First 5 cleanings @ 10% off</span>
+    <span style={{ color: "#10b981", fontWeight: "900", fontSize: "16px" }}>Save ${(calculateTotal() * 0.10).toFixed(2)}/visit</span>
+  </div>
+  <button
+    onClick={() => handleSubmit('instant_book')}
+    disabled={isSubmitting}
+    style={{
+      width: "100%",
+      padding: "18px",
+      background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+      color: "white",
+      border: "none",
+      borderRadius: "14px",
+      fontSize: "17px",
+      fontWeight: "900",
+      cursor: isSubmitting ? "not-allowed" : "pointer",
+      transition: "all 0.3s ease",
+      boxShadow: "0 15px 40px rgba(16, 185, 129, 0.4)",
+      textTransform: "uppercase",
+      letterSpacing: "0.5px",
+      opacity: isSubmitting ? 0.7 : 1,
+    }}
+  >
+    {isSubmitting && submissionType === 'instant_book' ? "Booking..." : "⚡ Instant Book & Save!"}
+  </button>
+</div>
+
+{/* Request Quote button */}
+<div style={{ marginTop: "12px" }}>
+  <button
+    onClick={() => handleSubmit('quote')}
+    disabled={isSubmitting}
+    style={{
+      width: "100%",
+      padding: "18px",
+      background: "linear-gradient(135deg, #06b6d4 0%, #0ea5e9 100%)",
+      color: "white",
+      border: "none",
+      borderRadius: "16px",
+      fontSize: "17px",
+      fontWeight: "800",
+      cursor: isSubmitting ? "not-allowed" : "pointer",
+      transition: "all 0.3s ease",
+      boxShadow: "0 15px 40px rgba(6, 182, 212, 0.4)",
+      letterSpacing: "0.5px",
+      textTransform: "uppercase",
+      opacity: isSubmitting ? 0.7 : 1,
+    }}
+  >
+    {isSubmitting && submissionType === 'quote' ? "Sending..." : "📋 Request a Quote"}
+  </button>
+  <p style={{ textAlign: "center", fontSize: "12px", color: "rgba(255,255,255,0.5)", fontWeight: "600", marginTop: "8px" }}>
+    We'll review your details and follow up within 24 hours
+  </p>
 </div>
 </div>
 )}
@@ -3622,7 +3699,7 @@ style={{
     letterSpacing: "0.5px",
   }}
 >
-Booking Received!
+{submissionType === 'instant_book' ? 'Booking Confirmed! ⚡' : 'Quote Received!'}
 </h2>
 <p
 style={{
@@ -3640,19 +3717,34 @@ style={{
     fontSize: "16px",
     color: "rgba(255, 255, 255, 0.8)",
     lineHeight: "1.6",
-    marginBottom: "30px",
+    marginBottom: "10px",
     fontWeight: "500",
   }}
 >
-Your quote for{" "}
-<strong style={{ color: "#06b6d4", fontSize: "20px" }}>
-${calculateTotal().toFixed(2)}
-</strong>{" "}
-has been submitted.
+{submissionType === 'instant_book' ? (
+  <>
+    Your booking for{" "}
+    <strong style={{ color: "#10b981", fontSize: "20px" }}>
+      ${calculateTotal().toFixed(2)}/visit
+    </strong>{" "}
+    is confirmed.
+    <br />
+    <strong style={{ color: "#10b981" }}>
+      🎉 You're saving ${(calculateTotal() * 0.10).toFixed(2)} per visit for your first 5 cleans!
+    </strong>
+  </>
+) : (
+  <>
+    Your quote for{" "}
+    <strong style={{ color: "#06b6d4", fontSize: "20px" }}>
+      ${calculateTotal().toFixed(2)}
+    </strong>{" "}
+    has been submitted.
+  </>
+)}
 <br />
 We'll contact you at{" "}
-<strong style={{ color: "white" }}>{email}</strong> shortly!
-</p>
+<strong style={{ color: "white" }}>{email}</strong> shortly!</p>
 {/* Close Button */}
 <button
 onClick={() => {
