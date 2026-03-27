@@ -511,6 +511,14 @@ const handleSubmit = async (type = 'quote') => {
     } catch {}
 
     if (type === 'instant_book') {
+      // Validate email before hitting Stripe
+      const cleanEmail = email.trim()
+      if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
+        alert('Please enter a valid email address before booking.')
+        setIsSubmitting(false)
+        setRedirectingToStripe(false)
+        return
+      }
       // For instant book: redirect to Stripe Checkout
       setRedirectingToStripe(true);
       try {
@@ -519,8 +527,8 @@ const handleSubmit = async (type = 'quote') => {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             quoteId:         quoteId || 'pending',
-            clientName:      `${firstName} ${lastName}`,
-            clientEmail:     email,
+            clientName:      `${firstName.trim()} ${lastName.trim()}`,
+            clientEmail:     cleanEmail,
             serviceType,
             frequency,
             address:         [address, city, state].filter(Boolean).join(', '),
@@ -1261,7 +1269,11 @@ style={{
     width: "100%",
     padding: "20px 24px",
     fontSize: "17px",
-    border: "2px solid rgba(255, 255, 255, 0.2)",
+    border: email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+      ? "2px solid rgba(239,68,68,0.7)"
+      : email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+      ? "2px solid rgba(16,185,129,0.7)"
+      : "2px solid rgba(255, 255, 255, 0.2)",
     borderRadius: "16px",
     transition: "all 0.3s ease",
     boxSizing: "border-box",
@@ -1269,21 +1281,31 @@ style={{
     fontWeight: "500",
   }}
 />
+{email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && (
+  <div style={{ fontSize: "12px", color: "rgba(239,68,68,0.9)", fontWeight: "700", marginTop: "6px", paddingLeft: "4px" }}>
+    ⚠ Please enter a valid email address (e.g. name@example.com)
+  </div>
+)}
+{email && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) && (
+  <div style={{ fontSize: "12px", color: "#10b981", fontWeight: "700", marginTop: "6px", paddingLeft: "4px" }}>
+    ✓ Looks good!
+  </div>
+)}
 </div>
 </div>
 <button
 onClick={() => {
-  if (email) {
-    setStep(2);
-    setTimeout(() => {
-      window.scrollTo({
-        top: 0,
-        behavior: "smooth",
-      });
-    }, 100);
-  }
+  const validEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
+  if (!firstName.trim()) { alert('Please enter your first name.'); return }
+  if (!lastName.trim())  { alert('Please enter your last name.'); return }
+  if (!email.trim())     { alert('Please enter your email address.'); return }
+  if (!validEmail)       { alert('Please enter a valid email address (e.g. name@example.com).'); return }
+  setStep(2);
+  setTimeout(() => {
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }, 100);
 }}
-disabled={!email}
+disabled={!firstName.trim() || !lastName.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())}
 style={{
     width: "100%",
     maxWidth: "500px",
