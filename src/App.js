@@ -77,6 +77,9 @@ const [timeTo, setTimeTo] = useState("5:00 PM");
 const [timeWindows, setTimeWindows] = useState([]);
 const [submissionType, setSubmissionType] = useState(""); // 'quote' | 'instant_book'
 const [isSubmitting, setIsSubmitting] = useState(false);
+const [instantBookDate, setInstantBookDate] = useState("");
+const [instantBookTime, setInstantBookTime] = useState("9:00 AM");
+const [showInstantBookPicker, setShowInstantBookPicker] = useState(false);
 
 // Instant Book: 10% off first 5 cleanings — calculated inline where needed
 // Load Google Places API and initialize autocomplete
@@ -477,14 +480,21 @@ const handleSubmit = async (type = 'quote') => {
                       })() : 'N/A',
     total_price:      `$${calculateTotal().toFixed(2)}`,
     submission_type:  type,
+    // 10% applied to post-frequency-discount total (calculateTotal already has frequency discount applied)
     instant_book_savings: type === 'instant_book' ? (calculateTotal() * 0.10).toFixed(2) : '0',
+    instant_book_date: type === 'instant_book' ? instantBookDate : '',
+    instant_book_time: type === 'instant_book' ? instantBookTime : '',
   };
 
   try {
     // Post to CleanSync platform (non-blocking — don't fail form if this fails)
     const cleanSyncPayload = {
       ...templateParams,
+      // instant book final price = calculateTotal() * 0.90 (10% off post-discount total)
       instant_book_savings: type === 'instant_book' ? calculateTotal() * 0.10 : 0,
+      instant_book_final_price: type === 'instant_book' ? calculateTotal() * 0.90 : calculateTotal(),
+      instant_book_date: type === 'instant_book' ? instantBookDate : '',
+      instant_book_time: type === 'instant_book' ? instantBookTime : '',
     };
     fetch(CLEANSYNC_WEBHOOK_URL, {
       method: 'POST',
@@ -3196,48 +3206,143 @@ style={{
 {/* Instant Book CTA — 10% off first 5 cleans */}
 <div style={{
   marginTop: "16px",
-  padding: "20px",
-  background: "linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.12) 100%)",
   border: "2px solid rgba(16,185,129,0.4)",
   borderRadius: "16px",
+  overflow: "hidden",
 }}>
-  <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "12px" }}>
-    <div style={{ fontSize: "24px" }}>⚡</div>
-    <div>
-      <div style={{ color: "#10b981", fontWeight: "900", fontSize: "16px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
-        Instant Book — Save 10%
+  {/* Header — always visible */}
+  <div style={{
+    padding: "18px 20px",
+    background: "linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.12) 100%)",
+  }}>
+    <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
+      <div style={{ fontSize: "24px" }}>⚡</div>
+      <div>
+        <div style={{ color: "#10b981", fontWeight: "900", fontSize: "16px", textTransform: "uppercase", letterSpacing: "0.5px" }}>
+          Instant Book — Save 10%
+        </div>
+        <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "13px", fontWeight: "600", marginTop: "2px" }}>
+          Lock in 10% off your first 5 cleanings when you book now
+        </div>
       </div>
-      <div style={{ color: "rgba(255,255,255,0.7)", fontSize: "13px", fontWeight: "600", marginTop: "2px" }}>
-        Lock in 10% off your first 5 cleanings when you book now
+    </div>
+    {/* Price math display */}
+    <div style={{ background: "rgba(0,0,0,0.25)", borderRadius: "10px", padding: "12px 14px" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "13px" }}>
+        <span style={{ color: "rgba(255,255,255,0.7)", fontWeight: "600" }}>Subtotal</span>
+        <span style={{ color: "white", fontWeight: "700" }}>${calculateSubtotal().toFixed(2)}</span>
+      </div>
+      {getDiscount() > 0 && (
+        <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "13px" }}>
+          <span style={{ color: "#10b981", fontWeight: "600" }}>
+            ✓ {frequency === "every-week" ? "Weekly (20% off)" : frequency === "bi-weekly" ? "Bi-Weekly (15% off)" : frequency === "every-3-weeks" ? "3-Week (12% off)" : frequency === "every-4-weeks" ? "4-Week (9% off)" : "Discount"}
+          </span>
+          <span style={{ color: "#10b981", fontWeight: "700" }}>-${getDiscount().toFixed(2)}</span>
+        </div>
+      )}
+      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "13px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "6px" }}>
+        <span style={{ color: "rgba(255,255,255,0.7)", fontWeight: "600" }}>After frequency discount</span>
+        <span style={{ color: "white", fontWeight: "700" }}>${calculateTotal().toFixed(2)}</span>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
+        <span style={{ color: "#10b981", fontWeight: "700" }}>⚡ Instant Book (10% off)</span>
+        <span style={{ color: "#10b981", fontWeight: "800" }}>-${(calculateTotal() * 0.10).toFixed(2)}</span>
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: "8px", paddingTop: "8px", borderTop: "2px solid rgba(16,185,129,0.4)", fontSize: "16px" }}>
+        <span style={{ color: "white", fontWeight: "900" }}>Your price per visit</span>
+        <span style={{ color: "#10b981", fontWeight: "900" }}>${(calculateTotal() * 0.90).toFixed(2)}</span>
       </div>
     </div>
   </div>
-  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", background: "rgba(0,0,0,0.2)", borderRadius: "10px", marginBottom: "14px" }}>
-    <span style={{ color: "rgba(255,255,255,0.8)", fontSize: "13px", fontWeight: "700" }}>First 5 cleanings @ 10% off</span>
-    <span style={{ color: "#10b981", fontWeight: "900", fontSize: "16px" }}>Save ${(calculateTotal() * 0.10).toFixed(2)}/visit</span>
-  </div>
-  <button
-    onClick={() => handleSubmit('instant_book')}
-    disabled={isSubmitting}
-    style={{
-      width: "100%",
-      padding: "18px",
-      background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
-      color: "white",
-      border: "none",
-      borderRadius: "14px",
-      fontSize: "17px",
-      fontWeight: "900",
-      cursor: isSubmitting ? "not-allowed" : "pointer",
-      transition: "all 0.3s ease",
-      boxShadow: "0 15px 40px rgba(16, 185, 129, 0.4)",
-      textTransform: "uppercase",
-      letterSpacing: "0.5px",
-      opacity: isSubmitting ? 0.7 : 1,
-    }}
-  >
-    {isSubmitting && submissionType === 'instant_book' ? "Booking..." : "⚡ Instant Book & Save!"}
-  </button>
+
+  {/* Date/time picker — expands when user clicks Instant Book */}
+  {!showInstantBookPicker ? (
+    <div style={{ padding: "14px 20px", background: "rgba(16,185,129,0.08)" }}>
+      <button
+        onClick={() => setShowInstantBookPicker(true)}
+        style={{
+          width: "100%", padding: "16px",
+          background: "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+          color: "white", border: "none", borderRadius: "12px",
+          fontSize: "17px", fontWeight: "900", cursor: "pointer",
+          boxShadow: "0 10px 30px rgba(16, 185, 129, 0.4)",
+          textTransform: "uppercase", letterSpacing: "0.5px",
+        }}
+      >
+        ⚡ Instant Book & Save!
+      </button>
+    </div>
+  ) : (
+    <div style={{ padding: "18px 20px", background: "rgba(5,30,50,0.6)", borderTop: "1px solid rgba(16,185,129,0.25)" }}>
+      <div style={{ fontSize: "13px", fontWeight: "800", color: "#10b981", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "14px" }}>
+        📅 Pick Your First Cleaning Date & Time
+      </div>
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "14px" }}>
+        <div>
+          <label style={{ fontSize: "11px", fontWeight: "700", color: "rgba(255,255,255,0.6)", letterSpacing: "0.5px", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
+            Date *
+          </label>
+          <input
+            type="date"
+            value={instantBookDate}
+            min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+            onChange={e => setInstantBookDate(e.target.value)}
+            style={{ width: "100%", padding: "14px", borderRadius: "12px", border: instantBookDate ? "2px solid #10b981" : "2px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.95)", color: "#0c4a6e", fontSize: "16px", fontWeight: "600", outline: "none", boxSizing: "border-box" }}
+          />
+        </div>
+        <div>
+          <label style={{ fontSize: "11px", fontWeight: "700", color: "rgba(255,255,255,0.6)", letterSpacing: "0.5px", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
+            Start Time *
+          </label>
+          <select
+            value={instantBookTime}
+            onChange={e => setInstantBookTime(e.target.value)}
+            style={{ width: "100%", padding: "14px", borderRadius: "12px", border: "2px solid rgba(16,185,129,0.5)", background: "rgba(255,255,255,0.95)", color: "#0c4a6e", fontSize: "16px", fontWeight: "600", outline: "none", boxSizing: "border-box" }}
+          >
+            {["7:00 AM","7:30 AM","8:00 AM","8:30 AM","9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM"].map(t => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+      </div>
+      {frequency && frequency !== "one-time" && (
+        <div style={{ padding: "10px 14px", background: "rgba(16,185,129,0.1)", borderRadius: "10px", border: "1px solid rgba(16,185,129,0.25)", marginBottom: "14px", fontSize: "12px", color: "rgba(255,255,255,0.8)", fontWeight: "600", lineHeight: "1.6" }}>
+          📅 Recurring schedule will be set up based on this date at {instantBookTime}.
+          {frequency === "every-week" && " Next clean: 7 days later."}
+          {frequency === "bi-weekly" && " Next clean: 14 days later."}
+          {frequency === "every-3-weeks" && " Next clean: 21 days later."}
+          {frequency === "every-4-weeks" && " Next clean: 28 days later."}
+        </div>
+      )}
+      {!instantBookDate && (
+        <div style={{ fontSize: "12px", color: "rgba(255,100,100,0.9)", fontWeight: "700", marginBottom: "10px" }}>
+          ⚠ Please select a date to continue
+        </div>
+      )}
+      <div style={{ display: "flex", gap: "10px" }}>
+        <button
+          onClick={() => setShowInstantBookPicker(false)}
+          style={{ flex: 1, padding: "14px", borderRadius: "12px", background: "rgba(255,255,255,0.08)", color: "rgba(255,255,255,0.6)", border: "1px solid rgba(255,255,255,0.15)", fontSize: "14px", fontWeight: "700", cursor: "pointer" }}
+        >
+          ← Back
+        </button>
+        <button
+          onClick={() => { if (!instantBookDate) return; handleSubmit('instant_book'); }}
+          disabled={!instantBookDate || isSubmitting}
+          style={{
+            flex: 2, padding: "14px",
+            background: instantBookDate ? "linear-gradient(135deg, #10b981 0%, #059669 100%)" : "rgba(255,255,255,0.1)",
+            color: "white", border: "none", borderRadius: "12px",
+            fontSize: "16px", fontWeight: "900", cursor: instantBookDate ? "pointer" : "not-allowed",
+            boxShadow: instantBookDate ? "0 10px 30px rgba(16, 185, 129, 0.4)" : "none",
+            opacity: isSubmitting ? 0.7 : 1,
+            textTransform: "uppercase", letterSpacing: "0.5px",
+            transition: "all 0.2s ease",
+          }}
+        >
+          {isSubmitting ? "Booking..." : `⚡ Confirm ${instantBookDate ? `for ${new Date(instantBookDate + 'T12:00:00').toLocaleDateString('en-US', {month:'short',day:'numeric'})} @ ${instantBookTime}` : 'Booking'}`}
+        </button>
+      </div>
+    </div>
+  )}
 </div>
 
 {/* Request Quote button */}
