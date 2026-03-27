@@ -80,6 +80,7 @@ const [isSubmitting, setIsSubmitting] = useState(false);
 const [instantBookDate, setInstantBookDate] = useState("");
 const [instantBookTime, setInstantBookTime] = useState("9:00 AM");
 const [showInstantBookPicker, setShowInstantBookPicker] = useState(false);
+const [redirectingToStripe, setRedirectingToStripe] = useState(false);
 
 // Instant Book: 10% off first 5 cleanings — calculated inline where needed
 // Load Google Places API and initialize autocomplete
@@ -487,21 +488,68 @@ const handleSubmit = async (type = 'quote') => {
   };
 
   try {
-    // Post to CleanSync platform (non-blocking — don't fail form if this fails)
+    // Post to CleanSync to create the quote record
     const cleanSyncPayload = {
       ...templateParams,
-      // instant book final price = calculateTotal() * 0.90 (10% off post-discount total)
       instant_book_savings: type === 'instant_book' ? calculateTotal() * 0.10 : 0,
       instant_book_final_price: type === 'instant_book' ? calculateTotal() * 0.90 : calculateTotal(),
       instant_book_date: type === 'instant_book' ? instantBookDate : '',
       instant_book_time: type === 'instant_book' ? instantBookTime : '',
     };
-    fetch(CLEANSYNC_WEBHOOK_URL, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(cleanSyncPayload),
-    }).catch(() => {}); // silent fail — don't block the form
-    // emailjs.send(serviceID, templateID, params, publicKey)
+
+    let quoteId = null;
+    try {
+      const csRes = await fetch(CLEANSYNC_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(cleanSyncPayload),
+      });
+      if (csRes.ok) {
+        const csData = await csRes.json();
+        quoteId = csData.quoteId;
+      }
+    } catch {}
+
+    if (type === 'instant_book') {
+      // For instant book: redirect to Stripe Checkout
+      setRedirectingToStripe(true);
+      try {
+        const stripeRes = await fetch('https://cleansync-beryl.vercel.app/api/stripe/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            quoteId:         quoteId || 'pending',
+            clientName:      `${firstName} ${lastName}`,
+            clientEmail:     email,
+            serviceType,
+            frequency,
+            address:         [address, city, state].filter(Boolean).join(', '),
+            finalPrice:      calculateTotal() * 0.90,
+            originalPrice:   calculateTotal(),
+            savings:         calculateTotal() * 0.10,
+            instantBookDate,
+            instantBookTime,
+          }),
+        });
+        const stripeData = await stripeRes.json();
+        if (stripeData.url) {
+          // Also send EmailJS notification
+          window.emailjs.send('service_8bkln92', 'template_ss9j71d', templateParams, 'ZsAm6x2gjm0hFV69o').catch(() => {});
+          window.location.href = stripeData.url;
+          return;
+        } else {
+          throw new Error(stripeData.error || 'Could not create payment session');
+        }
+      } catch (stripeErr) {
+        console.error('Stripe error:', stripeErr);
+        setRedirectingToStripe(false);
+        alert('Payment setup failed. Please try again or request a quote instead.');
+        setIsSubmitting(false);
+        return;
+      }
+    }
+
+    // Quote request flow — send email and show success modal
     const result = await window.emailjs.send(
       'service_8bkln92',
       'template_ss9j71d',
@@ -511,10 +559,10 @@ const handleSubmit = async (type = 'quote') => {
     if (result.status === 200) {
       setShowSuccessModal(true);
     } else {
-      alert('There was an error submitting your booking. Please try again or call us directly.');
+      alert('There was an error submitting your quote. Please try again or call us directly.');
     }
   } catch (error) {
-    console.error('EmailJS error:', error);
+    console.error('Submit error:', error);
     alert('There was an error submitting your booking. Please try again or call us directly.');
   } finally {
     setIsSubmitting(false);
@@ -3326,19 +3374,25 @@ style={{
         </button>
         <button
           onClick={() => { if (!instantBookDate) return; handleSubmit('instant_book'); }}
-          disabled={!instantBookDate || isSubmitting}
+          disabled={!instantBookDate || isSubmitting || redirectingToStripe}
           style={{
             flex: 2, padding: "14px",
             background: instantBookDate ? "linear-gradient(135deg, #10b981 0%, #059669 100%)" : "rgba(255,255,255,0.1)",
             color: "white", border: "none", borderRadius: "12px",
-            fontSize: "16px", fontWeight: "900", cursor: instantBookDate ? "pointer" : "not-allowed",
+            fontSize: "16px", fontWeight: "900",
+            cursor: instantBookDate && !redirectingToStripe ? "pointer" : "not-allowed",
             boxShadow: instantBookDate ? "0 10px 30px rgba(16, 185, 129, 0.4)" : "none",
-            opacity: isSubmitting ? 0.7 : 1,
+            opacity: (isSubmitting || redirectingToStripe) ? 0.8 : 1,
             textTransform: "uppercase", letterSpacing: "0.5px",
             transition: "all 0.2s ease",
           }}
         >
-          {isSubmitting ? "Booking..." : `⚡ Confirm ${instantBookDate ? `for ${new Date(instantBookDate + 'T12:00:00').toLocaleDateString('en-US', {month:'short',day:'numeric'})} @ ${instantBookTime}` : 'Booking'}`}
+          {redirectingToStripe
+            ? "⏳ Redirecting to Payment..."
+            : isSubmitting
+            ? "Processing..."
+            : `⚡ Confirm & Pay ${instantBookDate ? `· ${new Date(instantBookDate + 'T12:00:00').toLocaleDateString('en-US', {month:'short',day:'numeric'})} @ ${instantBookTime}` : ''}`
+          }
         </button>
       </div>
     </div>
@@ -3826,13 +3880,21 @@ style={{
   <>
     Your booking for{" "}
     <strong style={{ color: "#10b981", fontSize: "20px" }}>
-      ${calculateTotal().toFixed(2)}/visit
+      ${(calculateTotal() * 0.90).toFixed(2)}/visit
     </strong>{" "}
     is confirmed.
     <br />
     <strong style={{ color: "#10b981" }}>
       🎉 You're saving ${(calculateTotal() * 0.10).toFixed(2)} per visit for your first 5 cleans!
     </strong>
+    {instantBookDate && (
+      <>
+        <br />
+        <strong style={{ color: "white" }}>
+          📅 First clean: {new Date(instantBookDate + 'T12:00:00').toLocaleDateString('en-US', { weekday:'long', month:'long', day:'numeric' })} @ {instantBookTime}
+        </strong>
+      </>
+    )}
   </>
 ) : (
   <>
