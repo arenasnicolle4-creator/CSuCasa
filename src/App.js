@@ -12,7 +12,7 @@ import {
 } from "lucide-react";
 // ===== CONFIGURATION =====
 // Google Places API Key - for address autocomplete
-const GOOGLE_PLACES_API_KEY = "AIzaSyB18lv_Rulnv7jjFrM0PP57bCLO4U4_A_I";
+const GOOGLE_PLACES_API_KEY = process.env.REACT_APP_GOOGLE_PLACES_API_KEY || "";
 const CLEANSYNC_WEBHOOK_URL = "https://cleansync-beryl.vercel.app/api/quotes";
 export default function App() {
   const formTopRef = useRef(null);
