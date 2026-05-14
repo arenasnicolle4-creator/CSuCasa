@@ -14,6 +14,149 @@ import {
 // Google Places API Key - for address autocomplete
 const GOOGLE_PLACES_API_KEY = process.env.REACT_APP_GOOGLE_PLACES_API_KEY || "";
 const CLEANSYNC_WEBHOOK_URL = "https://cleansync-beryl.vercel.app/api/quotes";
+
+// 8 AM through 5 PM at 30-min increments. Used by the From/To pickers in
+// "Preferred Service Times" and the Instant-Book start-time picker.
+const SERVICE_TIMES = [
+  "8:00 AM","8:30 AM","9:00 AM","9:30 AM","10:00 AM","10:30 AM",
+  "11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM",
+  "2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM",
+];
+
+// Custom dropdown — replaces the OS-native <select> popover, which can't
+// be styled and looks janky against the form's glassy aesthetic. The
+// trigger keeps the same white-pill shape; the panel that opens is a
+// dark glass card with hover-highlighted rows. Closes on outside click
+// and on Escape.
+function Dropdown({ value, onChange, options, placeholder, accent = "rgba(255,255,255,0.2)" }) {
+  const [open, setOpen] = useState(false);
+  const wrapperRef = useRef(null);
+  const listRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(e) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setOpen(false);
+    }
+    function onEsc(e) {
+      if (e.key === "Escape") setOpen(false);
+    }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [open]);
+
+  // Scroll active row into view when the panel opens
+  useEffect(() => {
+    if (open && listRef.current) {
+      const active = listRef.current.querySelector("[data-active='true']");
+      if (active) active.scrollIntoView({ block: "nearest" });
+    }
+  }, [open]);
+
+  const display = value || placeholder || "";
+
+  return (
+    <div ref={wrapperRef} style={{ position: "relative", width: "100%" }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: "100%",
+          padding: "14px 44px 14px 16px",
+          borderRadius: "12px",
+          border: `2px solid ${open ? "#06b6d4" : accent}`,
+          background: "rgba(255,255,255,0.95)",
+          color: value ? "#0c4a6e" : "rgba(12,74,110,0.5)",
+          fontSize: "16px",
+          fontWeight: "600",
+          outline: "none",
+          boxSizing: "border-box",
+          cursor: "pointer",
+          textAlign: "left",
+          position: "relative",
+          boxShadow: open ? "0 0 0 4px rgba(6,182,212,0.15), 0 8px 24px rgba(6,182,212,0.18)" : "none",
+          transition: "border-color .15s, box-shadow .15s",
+          fontFamily: "inherit",
+        }}
+      >
+        {display}
+        <span
+          style={{
+            position: "absolute",
+            right: "16px",
+            top: "50%",
+            transform: `translateY(-50%) rotate(${open ? 180 : 0}deg)`,
+            transition: "transform .2s ease",
+            color: "#06b6d4",
+            fontSize: "12px",
+            fontWeight: "900",
+            pointerEvents: "none",
+          }}
+        >▼</span>
+      </button>
+      {open && (
+        <div
+          ref={listRef}
+          style={{
+            position: "absolute",
+            top: "calc(100% + 8px)",
+            left: 0,
+            right: 0,
+            maxHeight: "260px",
+            overflowY: "auto",
+            background: "linear-gradient(180deg, rgba(12,30,55,0.98) 0%, rgba(8,20,40,0.98) 100%)",
+            border: "1.5px solid rgba(6,182,212,0.4)",
+            borderRadius: "14px",
+            boxShadow: "0 16px 40px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.05) inset",
+            zIndex: 50,
+            padding: "6px",
+            backdropFilter: "blur(20px)",
+            animation: "csuDropdownIn .14s ease-out",
+          }}
+        >
+          <style>{`
+            @keyframes csuDropdownIn {
+              from { opacity: 0; transform: translateY(-6px); }
+              to   { opacity: 1; transform: translateY(0); }
+            }
+            .csu-opt:hover { background: rgba(6,182,212,0.18) !important; }
+          `}</style>
+          {options.map(opt => {
+            const isActive = opt.value === value;
+            return (
+              <div
+                key={opt.value}
+                className="csu-opt"
+                data-active={isActive}
+                onClick={() => { onChange(opt.value); setOpen(false); }}
+                style={{
+                  padding: "11px 14px",
+                  borderRadius: "9px",
+                  cursor: "pointer",
+                  fontSize: "15px",
+                  fontWeight: isActive ? "700" : "600",
+                  color: isActive ? "#06b6d4" : "rgba(220,235,250,0.9)",
+                  background: isActive ? "rgba(6,182,212,0.14)" : "transparent",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "8px",
+                  transition: "background .12s",
+                }}
+              >
+                {isActive && <span style={{ fontSize: "12px" }}>✓</span>}
+                <span>{opt.label}</span>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
 export default function App() {
   const formTopRef = useRef(null);
   const addressInputRef = useRef(null);
@@ -465,7 +608,10 @@ const handleSubmit = async (type = 'quote') => {
     additional_notes: additionalNotes || 'None',
     preferred_date_1: preferredDay1 || 'Not specified',
     preferred_date_2: preferredDay2 || 'Not specified',
-    preferred_times:  timeWindows.length ? timeWindows.join(', ') : 'Not specified',
+    // Auto-fall-back to the current From/To if the customer never clicked
+    // "+ Add this window" — avoids losing their selection just because
+    // they didn't realize the Add step was required.
+    preferred_times:  timeWindows.length ? timeWindows.join(', ') : `${timeFrom} – ${timeTo}`,
     // Pricing — full line-item breakdown
     price_breakdown:  breakdownLines || 'No items',
     subtotal:         `$${calculateSubtotal().toFixed(2)}`,
@@ -541,8 +687,10 @@ const handleSubmit = async (type = 'quote') => {
         });
         const stripeData = await stripeRes.json();
         if (stripeData.url) {
-          // Also send EmailJS notification
-          window.emailjs.send('service_8bkln92', 'template_ss9j71d', templateParams, 'ZsAm6x2gjm0hFV69o').catch(() => {});
+          // FlowSTR sends its own properly-formatted confirmation email
+          // from the Stripe webhook after payment succeeds — no need to
+          // also fire one via EmailJS here. (Earlier this path sent a
+          // duplicate, misaligned email before the customer had paid.)
           window.location.href = stripeData.url;
           return;
         } else {
@@ -1596,37 +1744,18 @@ style={{
   : "Frequency *"}
 </label>
 {serviceType === "House Cleaning" ? (
-    <select
+  <Dropdown
     value={frequency}
-    onChange={(e) => setFrequency(e.target.value)}
-    style={{
-        width: "100%",
-        padding: "20px 24px",
-        fontSize: "17px",
-        border: "2px solid rgba(255, 255, 255, 0.2)",
-        borderRadius: "16px",
-        background: "rgba(255, 255, 255, 0.95)",
-        cursor: "pointer",
-        boxSizing: "border-box",
-        fontWeight: "600",
-        color: "#0c4a6e",
-      }}
-  >
-  <option value="">Select frequency...</option>
-  <option value="every-week">
-  Every Week (20% discount)
-  </option>
-  <option value="bi-weekly">
-  Bi-Weekly (15% discount)
-  </option>
-  <option value="every-3-weeks">
-  Every 3 Weeks (12% discount)
-  </option>
-  <option value="every-4-weeks">
-  Every 4 Weeks (9% discount)
-  </option>
-  <option value="one-time">One-Time (no discount)</option>
-  </select>
+    onChange={setFrequency}
+    placeholder="Select frequency..."
+    options={[
+      { value: "every-week",    label: "Every Week (20% discount)" },
+      { value: "bi-weekly",     label: "Bi-Weekly (15% discount)" },
+      { value: "every-3-weeks", label: "Every 3 Weeks (12% discount)" },
+      { value: "every-4-weeks", label: "Every 4 Weeks (9% discount)" },
+      { value: "one-time",      label: "One-Time (no discount)" },
+    ]}
+  />
 ) : (
 <div
 className="turnovers-grid"
@@ -3186,7 +3315,30 @@ style={{
   Preferred Start Date(s)
 </label>
 <p style={{ fontSize:"13px", color:"rgba(255,255,255,0.6)", fontWeight:"600", marginTop:"-10px", marginBottom:"16px" }}>Select your first choice and a backup date.</p>
-<style>{`@media (max-width: 600px) { .date-grid { grid-template-columns: 1fr !important; } }`}</style>
+<style>{`
+  @media (max-width: 600px) { .date-grid { grid-template-columns: 1fr !important; } }
+  .csu-date-input {
+    transition: border-color .15s, box-shadow .15s, transform .12s;
+  }
+  .csu-date-input:hover {
+    border-color: rgba(6,182,212,0.55) !important;
+    box-shadow: 0 6px 18px rgba(6,182,212,0.18);
+  }
+  .csu-date-input:focus {
+    border-color: #06b6d4 !important;
+    outline: none;
+    box-shadow: 0 0 0 4px rgba(6,182,212,0.18), 0 8px 22px rgba(6,182,212,0.22);
+  }
+  .csu-date-input.has-value {
+    border-color: rgba(6,182,212,0.55) !important;
+  }
+  /* Tint the native calendar picker icon to match the form accent. */
+  .csu-date-input::-webkit-calendar-picker-indicator {
+    cursor: pointer;
+    filter: invert(56%) sepia(85%) saturate(490%) hue-rotate(150deg) brightness(95%) contrast(95%);
+    opacity: 0.85;
+  }
+`}</style>
 <div className="date-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"15px", maxWidth:"100%", overflow:"hidden" }}>
   <div>
     <label style={{ fontSize:"12px", color:"rgba(255,255,255,0.6)", marginBottom:"8px", display:"block", fontWeight:"700" }}>First Choice</label>
@@ -3194,7 +3346,8 @@ style={{
       type="date"
       value={preferredDay1}
       onChange={(e) => setPreferredDay1(e.target.value)}
-      style={{ width:"100%", maxWidth:"100%", padding:"16px 14px", fontSize:"16px", border:"2px solid rgba(255,255,255,0.2)", borderRadius:"14px", background:"rgba(255,255,255,0.95)", cursor:"pointer", boxSizing:"border-box", fontWeight:"600", color:"#0c4a6e", display:"block" }}
+      className={`csu-date-input${preferredDay1 ? " has-value" : ""}`}
+      style={{ width:"100%", maxWidth:"100%", padding:"16px 14px", fontSize:"16px", border:"2px solid rgba(255,255,255,0.2)", borderRadius:"14px", background:"rgba(255,255,255,0.95)", cursor:"pointer", boxSizing:"border-box", fontWeight:"600", color:"#0c4a6e", display:"block", fontFamily:"inherit" }}
     />
   </div>
   <div>
@@ -3203,7 +3356,8 @@ style={{
       type="date"
       value={preferredDay2}
       onChange={(e) => setPreferredDay2(e.target.value)}
-      style={{ width:"100%", maxWidth:"100%", padding:"16px 14px", fontSize:"16px", border:"2px solid rgba(255,255,255,0.2)", borderRadius:"14px", background:"rgba(255,255,255,0.95)", cursor:"pointer", boxSizing:"border-box", fontWeight:"600", color:"#0c4a6e", display:"block" }}
+      className={`csu-date-input${preferredDay2 ? " has-value" : ""}`}
+      style={{ width:"100%", maxWidth:"100%", padding:"16px 14px", fontSize:"16px", border:"2px solid rgba(255,255,255,0.2)", borderRadius:"14px", background:"rgba(255,255,255,0.95)", cursor:"pointer", boxSizing:"border-box", fontWeight:"600", color:"#0c4a6e", display:"block", fontFamily:"inherit" }}
     />
   </div>
 </div>
@@ -3216,35 +3370,101 @@ style={{
 </label>
 <p style={{ fontSize:"13px", color:"rgba(255,255,255,0.6)", fontWeight:"600", marginTop:"-10px", marginBottom:"16px" }}>Add one or more time windows when cleaning is welcome.</p>
 {/* From / To row */}
-<div style={{ display:"flex", gap:"10px", alignItems:"center", marginBottom:"12px", flexWrap:"wrap" }}>
-  <div style={{ flex:1, minWidth:"120px" }}>
-    <label style={{ fontSize:"11px", fontWeight:"700", color:"rgba(255,255,255,0.6)", letterSpacing:"0.5px", textTransform:"uppercase", display:"block", marginBottom:"6px" }}>From</label>
-    <select value={timeFrom} onChange={e=>setTimeFrom(e.target.value)} style={{ width:"100%", padding:"14px 16px", borderRadius:"12px", border:"2px solid rgba(255,255,255,0.2)", background:"rgba(255,255,255,0.95)", color:"#0c4a6e", fontSize:"16px", fontWeight:"600", outline:"none", boxSizing:"border-box" }}>
-      {["12:00 AM","12:30 AM","1:00 AM","1:30 AM","2:00 AM","2:30 AM","3:00 AM","3:30 AM","4:00 AM","4:30 AM","5:00 AM","5:30 AM","6:00 AM","6:30 AM","7:00 AM","7:30 AM","8:00 AM","8:30 AM","9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM","5:30 PM","6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM","8:30 PM","9:00 PM","9:30 PM","10:00 PM","10:30 PM","11:00 PM","11:30 PM"].map(t=><option key={t} value={t}>{t}</option>)}
-    </select>
-  </div>
-  <div style={{ paddingTop:"22px", color:"rgba(255,255,255,0.7)", fontWeight:"800", fontSize:"14px" }}>to</div>
-  <div style={{ flex:1, minWidth:"120px" }}>
-    <label style={{ fontSize:"11px", fontWeight:"700", color:"rgba(255,255,255,0.6)", letterSpacing:"0.5px", textTransform:"uppercase", display:"block", marginBottom:"6px" }}>To</label>
-    <select value={timeTo} onChange={e=>setTimeTo(e.target.value)} style={{ width:"100%", padding:"14px 16px", borderRadius:"12px", border:"2px solid rgba(255,255,255,0.2)", background:"rgba(255,255,255,0.95)", color:"#0c4a6e", fontSize:"16px", fontWeight:"600", outline:"none", boxSizing:"border-box" }}>
-      {["12:00 AM","12:30 AM","1:00 AM","1:30 AM","2:00 AM","2:30 AM","3:00 AM","3:30 AM","4:00 AM","4:30 AM","5:00 AM","5:30 AM","6:00 AM","6:30 AM","7:00 AM","7:30 AM","8:00 AM","8:30 AM","9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM","5:30 PM","6:00 PM","6:30 PM","7:00 PM","7:30 PM","8:00 PM","8:30 PM","9:00 PM","9:30 PM","10:00 PM","10:30 PM","11:00 PM","11:30 PM"].map(t=><option key={t} value={t}>{t}</option>)}
-    </select>
-  </div>
-  <div style={{ paddingTop:"22px" }}>
-    <button onClick={()=>{ const w=`${timeFrom} – ${timeTo}`; if(!timeWindows.includes(w)) setTimeWindows([...timeWindows,w]); }} style={{ padding:"14px 20px", borderRadius:"12px", border:"2px solid rgba(14,165,233,0.6)", background:"linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%)", color:"white", fontSize:"14px", fontWeight:"800", cursor:"pointer", whiteSpace:"nowrap" }}>+ Add</button>
-  </div>
-</div>
-{/* Added windows */}
-{timeWindows.length>0&&(
-  <div style={{ display:"flex", flexWrap:"wrap", gap:"8px" }}>
-    {timeWindows.map((w,i)=>(
-      <div key={i} style={{ display:"inline-flex", alignItems:"center", gap:"8px", padding:"10px 16px", borderRadius:"20px", background:"rgba(14,165,233,0.15)", border:"1.5px solid rgba(93,235,241,0.4)" }}>
-        <span style={{ fontSize:"13px", fontWeight:"700", color:"white" }}>{w}</span>
-        <button onClick={()=>setTimeWindows(timeWindows.filter((_,j)=>j!==i))} style={{ background:"none", border:"none", cursor:"pointer", color:"#06b6d4", fontSize:"16px", fontWeight:"900", lineHeight:"1", padding:"0" }}>×</button>
+{(() => {
+  // To options = times >= From (so a 10 AM From → To list starts at 10 AM).
+  const fromIdx = Math.max(0, SERVICE_TIMES.indexOf(timeFrom));
+  const toOptions = SERVICE_TIMES.slice(fromIdx);
+  const currentWindow = `${timeFrom} – ${timeTo}`;
+  const windowAlreadyAdded = timeWindows.includes(currentWindow);
+  return (
+    <>
+      <div style={{ display:"flex", gap:"10px", alignItems:"flex-end", marginBottom:"12px", flexWrap:"wrap" }}>
+        <div style={{ flex:1, minWidth:"140px" }}>
+          <label style={{ fontSize:"11px", fontWeight:"700", color:"rgba(255,255,255,0.6)", letterSpacing:"0.5px", textTransform:"uppercase", display:"block", marginBottom:"6px" }}>From</label>
+          <Dropdown
+            value={timeFrom}
+            onChange={(v) => {
+              setTimeFrom(v);
+              // If the new From is later than the current To, bump To
+              // forward so the window stays valid.
+              const newFromIdx = SERVICE_TIMES.indexOf(v);
+              const curToIdx = SERVICE_TIMES.indexOf(timeTo);
+              if (newFromIdx > curToIdx) setTimeTo(v);
+            }}
+            options={SERVICE_TIMES.map(t => ({ value: t, label: t }))}
+          />
+        </div>
+        <div style={{ paddingBottom:"14px", color:"rgba(255,255,255,0.7)", fontWeight:"800", fontSize:"14px" }}>to</div>
+        <div style={{ flex:1, minWidth:"140px" }}>
+          <label style={{ fontSize:"11px", fontWeight:"700", color:"rgba(255,255,255,0.6)", letterSpacing:"0.5px", textTransform:"uppercase", display:"block", marginBottom:"6px" }}>To</label>
+          <Dropdown
+            value={timeTo}
+            onChange={setTimeTo}
+            options={toOptions.map(t => ({ value: t, label: t }))}
+          />
+        </div>
+        <div>
+          <button
+            onClick={() => {
+              if (!windowAlreadyAdded) setTimeWindows([...timeWindows, currentWindow]);
+            }}
+            disabled={windowAlreadyAdded}
+            style={{
+              padding:"15px 24px",
+              borderRadius:"14px",
+              border:"2px solid rgba(16,185,129,0.6)",
+              background: windowAlreadyAdded
+                ? "rgba(16,185,129,0.25)"
+                : "linear-gradient(135deg, #10b981 0%, #059669 100%)",
+              color:"white",
+              fontSize:"14px",
+              fontWeight:"900",
+              cursor: windowAlreadyAdded ? "default" : "pointer",
+              whiteSpace:"nowrap",
+              boxShadow: windowAlreadyAdded ? "none" : "0 6px 18px rgba(16,185,129,0.35)",
+              letterSpacing:"0.5px",
+              textTransform:"uppercase",
+              transition:"transform .12s, box-shadow .15s",
+              opacity: windowAlreadyAdded ? 0.7 : 1,
+            }}
+          >
+            {windowAlreadyAdded ? "✓ Added" : "+ Add this window"}
+          </button>
+        </div>
       </div>
-    ))}
-  </div>
-)}
+      {/* Helper hint — the Add step trips up some customers who change
+          From/To and then submit without ever clicking Add. The submit
+          handler also auto-falls-back to the current From/To if no
+          windows were added, but this hint pushes the explicit path. */}
+      {!windowAlreadyAdded && (
+        <div style={{
+          padding:"10px 14px",
+          background:"rgba(16,185,129,0.08)",
+          border:"1px dashed rgba(16,185,129,0.45)",
+          borderRadius:"10px",
+          marginBottom:"14px",
+          fontSize:"12px",
+          color:"rgba(220,250,235,0.9)",
+          fontWeight:"600",
+          lineHeight:"1.6",
+        }}>
+          💡 Tap <strong style={{ color:"#34d399" }}>+ Add this window</strong> to lock in <strong style={{ color:"#fff" }}>{currentWindow}</strong>. You can add multiple windows.
+        </div>
+      )}
+      {/* Added windows */}
+      {timeWindows.length>0&&(
+        <div style={{ display:"flex", flexWrap:"wrap", gap:"8px" }}>
+          {timeWindows.map((w,i)=>(
+            <div key={i} style={{ display:"inline-flex", alignItems:"center", gap:"8px", padding:"10px 16px", borderRadius:"20px", background:"linear-gradient(135deg, rgba(6,182,212,0.22), rgba(14,165,233,0.18))", border:"1.5px solid rgba(93,235,241,0.5)", boxShadow:"0 4px 12px rgba(6,182,212,0.15)" }}>
+              <span style={{ fontSize:"13px", fontWeight:"700", color:"white" }}>{w}</span>
+              <button onClick={()=>setTimeWindows(timeWindows.filter((_,j)=>j!==i))} style={{ background:"rgba(255,255,255,0.12)", border:"none", cursor:"pointer", color:"#a5f3fc", fontSize:"14px", fontWeight:"900", lineHeight:"1", padding:"2px 7px", borderRadius:"50%" }}>×</button>
+            </div>
+          ))}
+        </div>
+      )}
+    </>
+  );
+})()}
 </div>
 <div style={{ display: "flex", gap: "15px" }}>
 <button
@@ -3357,20 +3577,20 @@ style={{
             value={instantBookDate}
             min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
             onChange={e => setInstantBookDate(e.target.value)}
-            style={{ width: "100%", padding: "14px", borderRadius: "12px", border: instantBookDate ? "2px solid #10b981" : "2px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.95)", color: "#0c4a6e", fontSize: "16px", fontWeight: "600", outline: "none", boxSizing: "border-box" }}
+            className={`csu-date-input${instantBookDate ? " has-value" : ""}`}
+            style={{ width: "100%", padding: "14px", borderRadius: "12px", border: instantBookDate ? "2px solid #10b981" : "2px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.95)", color: "#0c4a6e", fontSize: "16px", fontWeight: "600", outline: "none", boxSizing: "border-box", fontFamily:"inherit" }}
           />
         </div>
         <div>
           <label style={{ fontSize: "11px", fontWeight: "700", color: "rgba(255,255,255,0.6)", letterSpacing: "0.5px", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
             Start Time *
           </label>
-          <select
+          <Dropdown
             value={instantBookTime}
-            onChange={e => setInstantBookTime(e.target.value)}
-            style={{ width: "100%", padding: "14px", borderRadius: "12px", border: "2px solid rgba(16,185,129,0.5)", background: "rgba(255,255,255,0.95)", color: "#0c4a6e", fontSize: "16px", fontWeight: "600", outline: "none", boxSizing: "border-box" }}
-          >
-            {["7:00 AM","7:30 AM","8:00 AM","8:30 AM","9:00 AM","9:30 AM","10:00 AM","10:30 AM","11:00 AM","11:30 AM","12:00 PM","12:30 PM","1:00 PM","1:30 PM","2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM"].map(t => <option key={t} value={t}>{t}</option>)}
-          </select>
+            onChange={setInstantBookTime}
+            options={SERVICE_TIMES.map(t => ({ value: t, label: t }))}
+            accent="rgba(16,185,129,0.5)"
+          />
         </div>
       </div>
       {frequency && frequency !== "one-time" && (
