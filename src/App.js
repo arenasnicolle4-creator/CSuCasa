@@ -1,4 +1,7 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
+import { loadStripe } from "@stripe/stripe-js";
+import { EmbeddedCheckoutProvider, EmbeddedCheckout } from "@stripe/react-stripe-js";
 import {
   Home,
   Calendar,
@@ -10,6 +13,21 @@ import {
   MessageSquare,
   Clock,
 } from "lucide-react";
+
+// Cache the Stripe.js instance per (publishableKey, connectedAccountId)
+// pair — React re-renders can call loadStripe many times, and re-loading
+// the SDK on every call breaks the connected-account scoping for embedded
+// Checkout. Same pattern the FlowSTR portal uses.
+const stripeCache = new Map();
+function getStripe(publishableKey, connectedAccountId) {
+  const key = `${publishableKey}::${connectedAccountId}`;
+  let p = stripeCache.get(key);
+  if (!p) {
+    p = loadStripe(publishableKey, connectedAccountId ? { stripeAccount: connectedAccountId } : undefined);
+    stripeCache.set(key, p);
+  }
+  return p;
+}
 // ===== CONFIGURATION =====
 // Google Places API Key - for address autocomplete
 const GOOGLE_PLACES_API_KEY = process.env.REACT_APP_GOOGLE_PLACES_API_KEY || "";
@@ -490,7 +508,19 @@ const [isSubmitting, setIsSubmitting] = useState(false);
 const [instantBookDate, setInstantBookDate] = useState("");
 const [instantBookTime, setInstantBookTime] = useState("9:00 AM");
 const [showInstantBookPicker, setShowInstantBookPicker] = useState(false);
-const [redirectingToStripe, setRedirectingToStripe] = useState(false);
+
+// Embedded-checkout modal state. Three-phase lifecycle:
+//   1. show=true + clientSecret=null → tip-selector view, "Continue to payment" button
+//   2. show=true + clientSecret set  → EmbeddedCheckout iframe is mounted
+//   3. paymentSuccess=true           → "Booking confirmed" success view
+const [payModalOpen, setPayModalOpen] = useState(false);
+const [pendingQuoteId, setPendingQuoteId] = useState(null);
+const [tipMode, setTipMode] = useState("none"); // 'none' | '15' | '18' | '20' | '25' | 'custom'
+const [tipCustom, setTipCustom] = useState("");
+const [embeddedPay, setEmbeddedPay] = useState(null); // { clientSecret, publishableKey, connectedAccountId, totalCharge }
+const [creatingPaySession, setCreatingPaySession] = useState(false);
+const [paymentSuccess, setPaymentSuccess] = useState(false);
+const [payError, setPayError] = useState("");
 
 // Instant Book: 10% off first 5 cleanings — calculated inline where needed
 // Load Google Places API and initialize autocomplete
@@ -936,52 +966,31 @@ const handleSubmit = async (type = 'quote') => {
     } catch {}
 
     if (type === 'instant_book') {
-      // Validate email before hitting Stripe
-      const cleanEmail = email.trim()
+      // Validate email before opening the pay modal — Stripe will reject
+      // anything malformed and we want a clean error here, not from Stripe.
+      const cleanEmail = email.trim();
       if (!cleanEmail || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(cleanEmail)) {
-        alert('Please enter a valid email address before booking.')
-        setIsSubmitting(false)
-        setRedirectingToStripe(false)
-        return
-      }
-      // For instant book: redirect to Stripe Checkout
-      setRedirectingToStripe(true);
-      try {
-        const stripeRes = await fetch('https://cleansync-beryl.vercel.app/api/stripe/checkout', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            quoteId:         quoteId || 'pending',
-            clientName:      `${firstName.trim()} ${lastName.trim()}`,
-            clientEmail:     cleanEmail,
-            serviceType,
-            frequency,
-            address:         [address, city, state].filter(Boolean).join(', '),
-            finalPrice:      calculateTotal() * 0.90,
-            originalPrice:   calculateTotal(),
-            savings:         calculateTotal() * 0.10,
-            instantBookDate,
-            instantBookTime,
-          }),
-        });
-        const stripeData = await stripeRes.json();
-        if (stripeData.url) {
-          // FlowSTR sends its own properly-formatted confirmation email
-          // from the Stripe webhook after payment succeeds — no need to
-          // also fire one via EmailJS here. (Earlier this path sent a
-          // duplicate, misaligned email before the customer had paid.)
-          window.location.href = stripeData.url;
-          return;
-        } else {
-          throw new Error(stripeData.error || 'Could not create payment session');
-        }
-      } catch (stripeErr) {
-        console.error('Stripe error:', stripeErr);
-        setRedirectingToStripe(false);
-        alert('Payment setup failed. Please try again or request a quote instead.');
+        alert('Please enter a valid email address before booking.');
         setIsSubmitting(false);
         return;
       }
+      if (!quoteId) {
+        alert('Could not save your booking. Please try again.');
+        setIsSubmitting(false);
+        return;
+      }
+      // Open the embedded-pay modal. The modal handles tip selection and
+      // then calls /api/stripe/checkout with embedded:true to get a
+      // clientSecret for inline <EmbeddedCheckout/>.
+      setPendingQuoteId(quoteId);
+      setTipMode('none');
+      setTipCustom('');
+      setEmbeddedPay(null);
+      setPaymentSuccess(false);
+      setPayError('');
+      setPayModalOpen(true);
+      setIsSubmitting(false);
+      return;
     }
 
     // Quote request flow — send email and show success modal
@@ -3906,24 +3915,22 @@ style={{
         </button>
         <button
           onClick={() => { if (!instantBookDate) return; handleSubmit('instant_book'); }}
-          disabled={!instantBookDate || isSubmitting || redirectingToStripe}
+          disabled={!instantBookDate || isSubmitting}
           style={{
             flex: 2, padding: "14px",
             background: instantBookDate ? "linear-gradient(135deg, #10b981 0%, #059669 100%)" : "rgba(255,255,255,0.1)",
             color: "white", border: "none", borderRadius: "12px",
             fontSize: "16px", fontWeight: "900",
-            cursor: instantBookDate && !redirectingToStripe ? "pointer" : "not-allowed",
+            cursor: instantBookDate && !isSubmitting ? "pointer" : "not-allowed",
             boxShadow: instantBookDate ? "0 10px 30px rgba(16, 185, 129, 0.4)" : "none",
-            opacity: (isSubmitting || redirectingToStripe) ? 0.8 : 1,
+            opacity: isSubmitting ? 0.8 : 1,
             textTransform: "uppercase", letterSpacing: "0.5px",
             transition: "all 0.2s ease",
           }}
         >
-          {redirectingToStripe
-            ? "⏳ Redirecting to Payment..."
-            : isSubmitting
-            ? "Processing..."
-            : `⚡ Confirm & Pay ${instantBookDate ? `· ${new Date(instantBookDate + 'T12:00:00').toLocaleDateString('en-US', {month:'short',day:'numeric'})} @ ${instantBookTime}` : ''}`
+          {isSubmitting
+            ? "Saving booking..."
+            : `⚡ Continue ${instantBookDate ? `· ${new Date(instantBookDate + 'T12:00:00').toLocaleDateString('en-US', {month:'short',day:'numeric'})} @ ${instantBookTime}` : ''}`
           }
         </button>
       </div>
@@ -4511,6 +4518,305 @@ to {
 }
 }
 `}</style>
+{/* ── INSTANT-BOOK PAY MODAL ──────────────────────────────────────────
+    Three phases:
+      1. Tip selector + summary (no clientSecret yet)
+      2. EmbeddedCheckout iframe (clientSecret set, paymentSuccess=false)
+      3. Success state (paymentSuccess=true)
+    Rendered through createPortal to escape any ancestor overflow:hidden. */}
+{payModalOpen && typeof document !== 'undefined' && createPortal(
+  (() => {
+    const baseTotal = calculateTotal() * 0.90; // post-frequency + 10% instant-book
+    const tipDollars = (() => {
+      if (tipMode === 'none') return 0;
+      if (tipMode === 'custom') return Math.max(0, parseFloat(tipCustom) || 0);
+      return baseTotal * (parseInt(tipMode) / 100);
+    })();
+    const grandTotal = baseTotal + tipDollars;
+    const fmt = (n) => `$${n.toFixed(2)}`;
+
+    const TipChip = ({ value, label }) => {
+      const active = tipMode === value;
+      return (
+        <button
+          type="button"
+          onClick={() => setTipMode(active && value !== 'none' ? 'none' : value)}
+          style={{
+            flex: 1, padding: '11px 6px', borderRadius: 10,
+            border: `1.5px solid ${active ? '#10b981' : 'rgba(255,255,255,0.18)'}`,
+            background: active ? 'rgba(16,185,129,0.18)' : 'rgba(255,255,255,0.06)',
+            color: active ? '#34d399' : 'rgba(220,240,250,0.85)',
+            fontSize: 13, fontWeight: 700, cursor: 'pointer',
+            transition: 'all .15s',
+            fontFamily: 'inherit',
+          }}
+        >{label}</button>
+      );
+    };
+
+    const onContinue = async () => {
+      if (!pendingQuoteId) return;
+      setCreatingPaySession(true);
+      setPayError('');
+      try {
+        const res = await fetch('https://cleansync-beryl.vercel.app/api/stripe/checkout', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            quoteId: pendingQuoteId,
+            clientName: `${firstName.trim()} ${lastName.trim()}`,
+            clientEmail: email.trim(),
+            instantBookDate,
+            instantBookTime,
+            embedded: true,
+            tip: tipDollars,
+          }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.clientSecret) {
+          throw new Error(data.error || 'Could not start checkout');
+        }
+        setEmbeddedPay({
+          clientSecret: data.clientSecret,
+          publishableKey: data.publishableKey,
+          connectedAccountId: data.connectedAccountId,
+          totalCharge: data.totalCharge,
+        });
+      } catch (e) {
+        setPayError(e.message || 'Payment setup failed. Please try again.');
+      } finally {
+        setCreatingPaySession(false);
+      }
+    };
+
+    const close = () => {
+      // Only allow closing in phase 1 or 3 — don't kill an in-flight payment.
+      if (creatingPaySession) return;
+      setPayModalOpen(false);
+      setEmbeddedPay(null);
+      setPaymentSuccess(false);
+    };
+
+    const stripePromise = embeddedPay
+      ? getStripe(embeddedPay.publishableKey, embeddedPay.connectedAccountId || '')
+      : null;
+
+    return (
+      <div
+        onClick={close}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 9999,
+          display: 'flex', alignItems: 'flex-start', justifyContent: 'center',
+          background: 'rgba(2,10,24,0.78)', backdropFilter: 'blur(12px)',
+          padding: '24px 16px', overflowY: 'auto',
+        }}
+      >
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            width: '100%', maxWidth: 560,
+            background: 'linear-gradient(180deg, #0a1a30 0%, #06122a 100%)',
+            border: '1px solid rgba(93,235,241,0.25)',
+            borderRadius: 22,
+            boxShadow: '0 30px 80px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.04) inset',
+            overflow: 'hidden',
+            marginTop: 30, marginBottom: 30,
+            animation: 'csuModalIn .2s ease-out',
+          }}
+        >
+          <style>{`
+            @keyframes csuModalIn {
+              from { opacity: 0; transform: translateY(-12px) scale(0.98); }
+              to   { opacity: 1; transform: translateY(0) scale(1); }
+            }
+          `}</style>
+          {/* Header */}
+          <div style={{
+            display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+            padding: '18px 22px',
+            background: paymentSuccess
+              ? 'linear-gradient(135deg, rgba(16,185,129,0.18), rgba(5,150,105,0.12))'
+              : 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(6,182,212,0.08))',
+            borderBottom: '1px solid rgba(93,235,241,0.18)',
+          }}>
+            <div>
+              <div style={{ fontSize: 16, fontWeight: 800, color: '#e0f7fa', letterSpacing: '0.3px' }}>
+                {paymentSuccess ? '🎉 Booking Confirmed!' : embeddedPay ? 'Complete Payment' : '⚡ Confirm Your Instant Book'}
+              </div>
+              <div style={{ fontSize: 12, color: 'rgba(220,240,250,0.6)', marginTop: 3, fontWeight: 600 }}>
+                {paymentSuccess ? 'Check your email for the receipt' : embeddedPay ? 'Secured by Stripe' : 'Add a tip if you\'d like'}
+              </div>
+            </div>
+            <button
+              onClick={close}
+              disabled={creatingPaySession}
+              style={{
+                width: 34, height: 34, borderRadius: 10,
+                border: '1px solid rgba(255,255,255,0.12)',
+                background: 'rgba(255,255,255,0.06)',
+                color: 'rgba(220,240,250,0.7)', fontSize: 18,
+                cursor: creatingPaySession ? 'not-allowed' : 'pointer',
+                fontFamily: 'inherit',
+              }}
+            >×</button>
+          </div>
+
+          {paymentSuccess ? (
+            // ── Phase 3: success ──
+            <div style={{ padding: '40px 28px', textAlign: 'center' }}>
+              <div style={{ fontSize: 56, marginBottom: 12 }}>✅</div>
+              <div style={{ fontSize: 18, fontWeight: 800, color: '#e0f7fa', marginBottom: 8 }}>
+                You're booked for {instantBookDate ? new Date(instantBookDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : 'your date'} at {instantBookTime}.
+              </div>
+              <div style={{ fontSize: 13, color: 'rgba(220,240,250,0.7)', fontWeight: 600, lineHeight: 1.6, marginBottom: 24 }}>
+                We sent a confirmation email to <strong style={{ color: '#5eead4' }}>{email}</strong>. See you soon!
+              </div>
+              <button
+                onClick={() => {
+                  setPayModalOpen(false);
+                  window.scrollTo({ top: 0, behavior: 'smooth' });
+                }}
+                style={{
+                  padding: '14px 32px', borderRadius: 12, border: 'none',
+                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer',
+                  letterSpacing: '0.4px', textTransform: 'uppercase',
+                  boxShadow: '0 10px 28px rgba(16,185,129,0.45)',
+                  fontFamily: 'inherit',
+                }}
+              >Done</button>
+            </div>
+          ) : embeddedPay && stripePromise ? (
+            // ── Phase 2: embedded checkout iframe ──
+            <div style={{ background: '#fff', padding: '8px 0' }}>
+              <EmbeddedCheckoutProvider
+                stripe={stripePromise}
+                options={{
+                  clientSecret: embeddedPay.clientSecret,
+                  onComplete: () => { setPaymentSuccess(true); },
+                }}
+              >
+                <EmbeddedCheckout />
+              </EmbeddedCheckoutProvider>
+            </div>
+          ) : (
+            // ── Phase 1: tip selector + summary ──
+            <div style={{ padding: '20px 24px' }}>
+              {/* Order summary */}
+              <div style={{
+                background: 'rgba(6,182,212,0.07)',
+                border: '1px solid rgba(93,235,241,0.18)',
+                borderRadius: 14, padding: '14px 18px', marginBottom: 18,
+              }}>
+                <div style={{ fontSize: 11, fontWeight: 800, color: '#7dd3fc', letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 10 }}>
+                  Order Summary
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: 'rgba(220,240,250,0.7)', fontWeight: 600 }}>Service</span>
+                    <span style={{ color: '#e0f7fa', fontWeight: 700 }}>{serviceType}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13 }}>
+                    <span style={{ color: 'rgba(220,240,250,0.7)', fontWeight: 600 }}>Date</span>
+                    <span style={{ color: '#e0f7fa', fontWeight: 700 }}>
+                      {instantBookDate ? new Date(instantBookDate + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : '—'} @ {instantBookTime}
+                    </span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, paddingTop: 6, borderTop: '1px solid rgba(93,235,241,0.12)', marginTop: 4 }}>
+                    <span style={{ color: 'rgba(220,240,250,0.85)', fontWeight: 700 }}>Subtotal</span>
+                    <span style={{ color: '#e0f7fa', fontWeight: 800 }}>{fmt(baseTotal)}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Tip selector */}
+              <div style={{ marginBottom: 18 }}>
+                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <span style={{ fontSize: 13, fontWeight: 800, color: '#e0f7fa' }}>
+                    Add a tip <span style={{ fontSize: 11, color: 'rgba(220,240,250,0.5)', fontWeight: 500 }}>(optional)</span>
+                  </span>
+                  {tipDollars > 0 && (
+                    <span style={{ fontSize: 13, fontWeight: 800, color: '#34d399' }}>+ {fmt(tipDollars)}</span>
+                  )}
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <TipChip value="15" label="15%" />
+                  <TipChip value="18" label="18%" />
+                  <TipChip value="20" label="20%" />
+                  <TipChip value="25" label="25%" />
+                  <TipChip value="custom" label="Custom" />
+                </div>
+                {tipMode === 'custom' && (
+                  <div style={{ marginTop: 10, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 14, color: 'rgba(220,240,250,0.6)' }}>$</span>
+                    <input
+                      type="number" step="0.01" min="0" inputMode="decimal"
+                      value={tipCustom}
+                      onChange={e => setTipCustom(e.target.value)}
+                      placeholder="0.00"
+                      style={{
+                        flex: 1, padding: '10px 12px', borderRadius: 10,
+                        border: '1.5px solid rgba(255,255,255,0.18)',
+                        background: 'rgba(255,255,255,0.06)',
+                        color: '#fff', fontSize: 14, outline: 'none',
+                        fontFamily: 'inherit',
+                      }}
+                    />
+                  </div>
+                )}
+              </div>
+
+              {/* Grand total */}
+              <div style={{
+                background: 'linear-gradient(135deg, rgba(16,185,129,0.12), rgba(5,150,105,0.08))',
+                border: '1px solid rgba(16,185,129,0.35)',
+                borderRadius: 14, padding: '14px 18px', marginBottom: 18,
+                display: 'flex', justifyContent: 'space-between', alignItems: 'baseline',
+              }}>
+                <span style={{ fontSize: 14, fontWeight: 800, color: '#e0f7fa' }}>Total</span>
+                <span style={{ fontSize: 24, fontWeight: 900, color: '#34d399' }}>{fmt(grandTotal)}</span>
+              </div>
+
+              {payError && (
+                <div style={{
+                  padding: '10px 14px', marginBottom: 14,
+                  background: 'rgba(239,68,68,0.1)',
+                  border: '1px solid rgba(239,68,68,0.35)',
+                  borderRadius: 10,
+                  fontSize: 13, color: '#fca5a5', fontWeight: 600,
+                }}>{payError}</div>
+              )}
+
+              {/* CTA */}
+              <button
+                onClick={onContinue}
+                disabled={creatingPaySession}
+                style={{
+                  width: '100%', padding: '16px',
+                  background: creatingPaySession
+                    ? 'rgba(16,185,129,0.4)'
+                    : 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                  color: '#fff', border: 'none', borderRadius: 14,
+                  fontSize: 15, fontWeight: 900, cursor: creatingPaySession ? 'wait' : 'pointer',
+                  boxShadow: creatingPaySession ? 'none' : '0 10px 28px rgba(16,185,129,0.4)',
+                  letterSpacing: '0.5px', textTransform: 'uppercase',
+                  fontFamily: 'inherit',
+                }}
+              >
+                {creatingPaySession ? '⏳ Loading…' : `Continue to Payment · ${fmt(grandTotal)}`}
+              </button>
+
+              <div style={{ marginTop: 12, fontSize: 11, color: 'rgba(220,240,250,0.45)', textAlign: 'center', fontWeight: 600 }}>
+                Payment processed securely by Stripe. You'll be charged once and your first cleaning is locked in.
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+    );
+  })(),
+  document.body
+)}
 </div>
 );
 }
