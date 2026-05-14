@@ -23,6 +23,247 @@ const SERVICE_TIMES = [
   "2:00 PM","2:30 PM","3:00 PM","3:30 PM","4:00 PM","4:30 PM","5:00 PM",
 ];
 
+// Custom calendar — replaces the OS-native <input type="date"> popover,
+// which is unstyleable and renders inconsistently across browsers (and
+// looks plain bad against the form's dark-glass aesthetic). Outputs the
+// same YYYY-MM-DD string the native input would, so all downstream
+// state/code keeps working.
+function DatePicker({ value, onChange, minDate, placeholder = "Select a date", accent = "rgba(255,255,255,0.2)" }) {
+  const [open, setOpen] = useState(false);
+  // Month being viewed. Defaults to the selected date's month, else
+  // today's month. Keep as Date pointing at the 1st of the month.
+  const initMonth = (() => {
+    if (value) {
+      const [y, m] = value.split("-").map(Number);
+      return new Date(y, m - 1, 1);
+    }
+    return new Date(new Date().getFullYear(), new Date().getMonth(), 1);
+  })();
+  const [viewMonth, setViewMonth] = useState(initMonth);
+  const wrapperRef = useRef(null);
+
+  useEffect(() => {
+    if (!open) return;
+    function onDoc(e) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target)) setOpen(false);
+    }
+    function onEsc(e) { if (e.key === "Escape") setOpen(false); }
+    document.addEventListener("mousedown", onDoc);
+    document.addEventListener("keydown", onEsc);
+    return () => {
+      document.removeEventListener("mousedown", onDoc);
+      document.removeEventListener("keydown", onEsc);
+    };
+  }, [open]);
+
+  // Re-sync viewMonth when value changes externally (rare, but defensive).
+  useEffect(() => {
+    if (value) {
+      const [y, m] = value.split("-").map(Number);
+      setViewMonth(new Date(y, m - 1, 1));
+    }
+  }, [value]);
+
+  function fmt(d) {
+    return d.toLocaleDateString("en-US", {
+      weekday: "short", month: "short", day: "numeric", year: "numeric",
+    });
+  }
+  function ymdToDate(ymd) {
+    const [y, m, d] = ymd.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }
+  function dateToYmd(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, "0");
+    const day = String(d.getDate()).padStart(2, "0");
+    return `${y}-${m}-${day}`;
+  }
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const minDateObj = minDate ? ymdToDate(minDate) : null;
+  if (minDateObj) minDateObj.setHours(0, 0, 0, 0);
+  const selectedDate = value ? ymdToDate(value) : null;
+
+  // Build a 6-row x 7-col grid covering viewMonth (with leading/trailing
+  // days from neighboring months greyed out).
+  const firstOfMonth = new Date(viewMonth.getFullYear(), viewMonth.getMonth(), 1);
+  const startDow = firstOfMonth.getDay(); // 0 = Sun
+  const gridStart = new Date(firstOfMonth);
+  gridStart.setDate(gridStart.getDate() - startDow);
+
+  const cells = [];
+  for (let i = 0; i < 42; i++) {
+    const d = new Date(gridStart);
+    d.setDate(gridStart.getDate() + i);
+    cells.push(d);
+  }
+
+  const monthLabel = viewMonth.toLocaleDateString("en-US", { month: "long", year: "numeric" });
+  const triggerDisplay = value ? fmt(ymdToDate(value)) : placeholder;
+  const triggerActive = !!value;
+
+  return (
+    <div ref={wrapperRef} style={{ position: "relative", width: "100%" }}>
+      <button
+        type="button"
+        onClick={() => setOpen(o => !o)}
+        style={{
+          width: "100%",
+          padding: "16px 16px 16px 44px",
+          borderRadius: "14px",
+          border: `2px solid ${open ? "#06b6d4" : (triggerActive ? "rgba(6,182,212,0.55)" : accent)}`,
+          background: "rgba(255,255,255,0.95)",
+          color: triggerActive ? "#0c4a6e" : "rgba(12,74,110,0.5)",
+          fontSize: "16px",
+          fontWeight: "600",
+          outline: "none",
+          boxSizing: "border-box",
+          cursor: "pointer",
+          textAlign: "left",
+          position: "relative",
+          boxShadow: open ? "0 0 0 4px rgba(6,182,212,0.18), 0 8px 24px rgba(6,182,212,0.22)" : "none",
+          transition: "border-color .15s, box-shadow .15s",
+          fontFamily: "inherit",
+        }}
+      >
+        <span style={{
+          position: "absolute",
+          left: "14px",
+          top: "50%",
+          transform: "translateY(-50%)",
+          fontSize: "16px",
+          color: "#06b6d4",
+        }}>📅</span>
+        {triggerDisplay}
+      </button>
+      {open && (
+        <div
+          style={{
+            position: "absolute",
+            top: "calc(100% + 8px)",
+            left: 0,
+            right: 0,
+            minWidth: "300px",
+            background: "linear-gradient(180deg, rgba(12,30,55,0.99) 0%, rgba(8,20,40,0.99) 100%)",
+            border: "1.5px solid rgba(6,182,212,0.4)",
+            borderRadius: "16px",
+            boxShadow: "0 20px 50px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.05) inset",
+            zIndex: 60,
+            padding: "16px",
+            backdropFilter: "blur(20px)",
+            animation: "csuDpIn .15s ease-out",
+          }}
+        >
+          <style>{`
+            @keyframes csuDpIn {
+              from { opacity: 0; transform: translateY(-6px); }
+              to   { opacity: 1; transform: translateY(0); }
+            }
+            .csu-dp-day:hover:not(.csu-dp-disabled):not(.csu-dp-selected) {
+              background: rgba(6,182,212,0.18) !important;
+              color: #e0f7fa !important;
+            }
+            .csu-dp-nav:hover {
+              background: rgba(6,182,212,0.18) !important;
+              color: #67e8f9 !important;
+            }
+          `}</style>
+          {/* Header */}
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "14px" }}>
+            <button
+              type="button"
+              className="csu-dp-nav"
+              onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() - 1, 1))}
+              style={{ width: "34px", height: "34px", borderRadius: "10px", border: "1px solid rgba(6,182,212,0.25)", background: "rgba(6,182,212,0.06)", color: "#7dd3fc", fontSize: "16px", fontWeight: "900", cursor: "pointer", transition: "background .12s, color .12s" }}
+            >‹</button>
+            <div style={{ fontSize: "15px", fontWeight: "800", color: "#e0f7fa", letterSpacing: "0.3px" }}>{monthLabel}</div>
+            <button
+              type="button"
+              className="csu-dp-nav"
+              onClick={() => setViewMonth(new Date(viewMonth.getFullYear(), viewMonth.getMonth() + 1, 1))}
+              style={{ width: "34px", height: "34px", borderRadius: "10px", border: "1px solid rgba(6,182,212,0.25)", background: "rgba(6,182,212,0.06)", color: "#7dd3fc", fontSize: "16px", fontWeight: "900", cursor: "pointer", transition: "background .12s, color .12s" }}
+            >›</button>
+          </div>
+          {/* Day-of-week labels */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px", marginBottom: "6px" }}>
+            {["S", "M", "T", "W", "T", "F", "S"].map((d, i) => (
+              <div key={i} style={{ fontSize: "11px", fontWeight: "700", color: "rgba(125,211,252,0.7)", textAlign: "center", letterSpacing: "0.5px" }}>{d}</div>
+            ))}
+          </div>
+          {/* Date grid */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(7, 1fr)", gap: "4px" }}>
+            {cells.map((d, i) => {
+              const isOtherMonth = d.getMonth() !== viewMonth.getMonth();
+              const isToday = d.getTime() === today.getTime();
+              const isSelected = selectedDate && d.getTime() === selectedDate.getTime();
+              const isDisabled = minDateObj ? d < minDateObj : false;
+              const classes = ["csu-dp-day"];
+              if (isDisabled) classes.push("csu-dp-disabled");
+              if (isSelected) classes.push("csu-dp-selected");
+              return (
+                <button
+                  key={i}
+                  type="button"
+                  className={classes.join(" ")}
+                  disabled={isDisabled}
+                  onClick={() => {
+                    if (isDisabled) return;
+                    onChange(dateToYmd(d));
+                    setOpen(false);
+                  }}
+                  style={{
+                    height: "36px",
+                    borderRadius: "9px",
+                    border: isToday && !isSelected ? "1.5px solid rgba(125,211,252,0.5)" : "1.5px solid transparent",
+                    background: isSelected
+                      ? "linear-gradient(135deg, #0ea5e9 0%, #06b6d4 100%)"
+                      : "transparent",
+                    color: isDisabled
+                      ? "rgba(180,200,220,0.2)"
+                      : isOtherMonth
+                        ? "rgba(180,200,220,0.35)"
+                        : isSelected
+                          ? "#ffffff"
+                          : "rgba(220,240,250,0.88)",
+                    fontSize: "13px",
+                    fontWeight: isSelected || isToday ? "800" : "600",
+                    cursor: isDisabled ? "not-allowed" : "pointer",
+                    boxShadow: isSelected ? "0 4px 12px rgba(6,182,212,0.45)" : "none",
+                    transition: "background .12s, color .12s, transform .1s",
+                    fontFamily: "inherit",
+                  }}
+                >{d.getDate()}</button>
+              );
+            })}
+          </div>
+          {/* Quick actions */}
+          <div style={{ marginTop: "12px", paddingTop: "10px", borderTop: "1px solid rgba(6,182,212,0.15)", display: "flex", gap: "6px", justifyContent: "space-between", alignItems: "center" }}>
+            <button
+              type="button"
+              onClick={() => {
+                const t = new Date(); t.setHours(0,0,0,0);
+                if (!minDateObj || t >= minDateObj) {
+                  setViewMonth(new Date(t.getFullYear(), t.getMonth(), 1));
+                  onChange(dateToYmd(t));
+                  setOpen(false);
+                }
+              }}
+              style={{ padding: "7px 14px", borderRadius: "8px", border: "1px solid rgba(6,182,212,0.3)", background: "transparent", color: "#7dd3fc", fontSize: "12px", fontWeight: "700", cursor: "pointer", fontFamily: "inherit" }}
+            >Today</button>
+            {value && (
+              <button
+                type="button"
+                onClick={() => { onChange(""); setOpen(false); }}
+                style={{ padding: "7px 14px", borderRadius: "8px", border: "1px solid rgba(255,255,255,0.12)", background: "transparent", color: "rgba(220,240,250,0.6)", fontSize: "12px", fontWeight: "600", cursor: "pointer", fontFamily: "inherit" }}
+              >Clear</button>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Custom dropdown — replaces the OS-native <select> popover, which can't
 // be styled and looks janky against the form's glassy aesthetic. The
 // trigger keeps the same white-pill shape; the panel that opens is a
@@ -57,7 +298,11 @@ function Dropdown({ value, onChange, options, placeholder, accent = "rgba(255,25
     }
   }, [open]);
 
-  const display = value || placeholder || "";
+  // Show the option's label in the trigger — using `value` directly broke
+  // for cases like Frequency where the value is a slug ('every-week') and
+  // the label is the human-friendly text ('Every Week (20% discount)').
+  const selected = options.find(o => o.value === value);
+  const display = selected ? selected.label : (placeholder || "");
 
   return (
     <div ref={wrapperRef} style={{ position: "relative", width: "100%" }}>
@@ -70,7 +315,7 @@ function Dropdown({ value, onChange, options, placeholder, accent = "rgba(255,25
           borderRadius: "12px",
           border: `2px solid ${open ? "#06b6d4" : accent}`,
           background: "rgba(255,255,255,0.95)",
-          color: value ? "#0c4a6e" : "rgba(12,74,110,0.5)",
+          color: selected ? "#0c4a6e" : "rgba(12,74,110,0.5)",
           fontSize: "16px",
           fontWeight: "600",
           outline: "none",
@@ -101,6 +346,7 @@ function Dropdown({ value, onChange, options, placeholder, accent = "rgba(255,25
       {open && (
         <div
           ref={listRef}
+          className="csu-dd-panel"
           style={{
             position: "absolute",
             top: "calc(100% + 8px)",
@@ -124,6 +370,27 @@ function Dropdown({ value, onChange, options, placeholder, accent = "rgba(255,25
               to   { opacity: 1; transform: translateY(0); }
             }
             .csu-opt:hover { background: rgba(6,182,212,0.18) !important; }
+            /* Custom scrollbar — the default OS scrollbar broke the glassy
+               aesthetic. Teal track + gradient thumb on WebKit, with a
+               Firefox fallback via scrollbar-color. */
+            .csu-dd-panel {
+              scrollbar-width: thin;
+              scrollbar-color: rgba(6,182,212,0.55) rgba(255,255,255,0.04);
+            }
+            .csu-dd-panel::-webkit-scrollbar { width: 8px; }
+            .csu-dd-panel::-webkit-scrollbar-track {
+              background: rgba(255,255,255,0.04);
+              border-radius: 8px;
+              margin: 6px 0;
+            }
+            .csu-dd-panel::-webkit-scrollbar-thumb {
+              background: linear-gradient(180deg, #06b6d4 0%, #0284c7 100%);
+              border-radius: 8px;
+              border: 1.5px solid rgba(12,30,55,0.6);
+            }
+            .csu-dd-panel::-webkit-scrollbar-thumb:hover {
+              background: linear-gradient(180deg, #22d3ee 0%, #0ea5e9 100%);
+            }
           `}</style>
           {options.map(opt => {
             const isActive = opt.value === value;
@@ -557,6 +824,19 @@ const handleContinueToAddOns = () => {
 }
 };
 const handleSubmit = async (type = 'quote') => {
+  // Required: at least one preferred service time window. The customer
+  // chooses From/To with two dropdowns but has to explicitly click
+  // "+ Add this window" to lock it in — easy to miss otherwise. Hard
+  // error here keeps the form from submitting with no time committed.
+  if (timeWindows.length === 0) {
+    alert(`Please tap "+ Add this window" to lock in at least one preferred service time before submitting.`);
+    // Scroll the time-window section into view so the customer sees the hint.
+    setTimeout(() => {
+      const hint = document.querySelector('[data-time-windows-section]');
+      if (hint) hint.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }, 50);
+    return;
+  }
   setSubmissionType(type);
   setIsSubmitting(true);
   // Build individual add-on lines
@@ -608,10 +888,9 @@ const handleSubmit = async (type = 'quote') => {
     additional_notes: additionalNotes || 'None',
     preferred_date_1: preferredDay1 || 'Not specified',
     preferred_date_2: preferredDay2 || 'Not specified',
-    // Auto-fall-back to the current From/To if the customer never clicked
-    // "+ Add this window" — avoids losing their selection just because
-    // they didn't realize the Add step was required.
-    preferred_times:  timeWindows.length ? timeWindows.join(', ') : `${timeFrom} – ${timeTo}`,
+    // handleSubmit guards against empty timeWindows above, so this is
+    // always non-empty by the time we get here.
+    preferred_times:  timeWindows.join(', '),
     // Pricing — full line-item breakdown
     price_breakdown:  breakdownLines || 'No items',
     subtotal:         `$${calculateSubtotal().toFixed(2)}`,
@@ -3339,34 +3618,22 @@ style={{
     opacity: 0.85;
   }
 `}</style>
-<div className="date-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"15px", maxWidth:"100%", overflow:"hidden" }}>
+<div className="date-grid" style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:"15px", maxWidth:"100%", overflow:"visible" }}>
   <div>
     <label style={{ fontSize:"12px", color:"rgba(255,255,255,0.6)", marginBottom:"8px", display:"block", fontWeight:"700" }}>First Choice</label>
-    <input
-      type="date"
-      value={preferredDay1}
-      onChange={(e) => setPreferredDay1(e.target.value)}
-      className={`csu-date-input${preferredDay1 ? " has-value" : ""}`}
-      style={{ width:"100%", maxWidth:"100%", padding:"16px 14px", fontSize:"16px", border:"2px solid rgba(255,255,255,0.2)", borderRadius:"14px", background:"rgba(255,255,255,0.95)", cursor:"pointer", boxSizing:"border-box", fontWeight:"600", color:"#0c4a6e", display:"block", fontFamily:"inherit" }}
-    />
+    <DatePicker value={preferredDay1} onChange={setPreferredDay1} placeholder="Pick first choice" />
   </div>
   <div>
     <label style={{ fontSize:"12px", color:"rgba(255,255,255,0.6)", marginBottom:"8px", display:"block", fontWeight:"700" }}>Second Choice</label>
-    <input
-      type="date"
-      value={preferredDay2}
-      onChange={(e) => setPreferredDay2(e.target.value)}
-      className={`csu-date-input${preferredDay2 ? " has-value" : ""}`}
-      style={{ width:"100%", maxWidth:"100%", padding:"16px 14px", fontSize:"16px", border:"2px solid rgba(255,255,255,0.2)", borderRadius:"14px", background:"rgba(255,255,255,0.95)", cursor:"pointer", boxSizing:"border-box", fontWeight:"600", color:"#0c4a6e", display:"block", fontFamily:"inherit" }}
-    />
+    <DatePicker value={preferredDay2} onChange={setPreferredDay2} placeholder="Pick backup date" />
   </div>
 </div>
 </div>
 
-<div style={{ marginBottom: "40px" }}>
+<div data-time-windows-section style={{ marginBottom: "40px" }}>
 <label style={{ display:"flex", alignItems:"center", fontSize:"13px", fontWeight:"800", color:"#06b6d4", marginBottom:"15px", gap:"8px", letterSpacing:"1px", textTransform:"uppercase" }}>
   <Clock size={18} color="#06b6d4" />
-  Preferred Service Times
+  Preferred Service Times *
 </label>
 <p style={{ fontSize:"13px", color:"rgba(255,255,255,0.6)", fontWeight:"600", marginTop:"-10px", marginBottom:"16px" }}>Add one or more time windows when cleaning is welcome.</p>
 {/* From / To row */}
@@ -3572,13 +3839,12 @@ style={{
           <label style={{ fontSize: "11px", fontWeight: "700", color: "rgba(255,255,255,0.6)", letterSpacing: "0.5px", textTransform: "uppercase", display: "block", marginBottom: "6px" }}>
             Date *
           </label>
-          <input
-            type="date"
+          <DatePicker
             value={instantBookDate}
-            min={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
-            onChange={e => setInstantBookDate(e.target.value)}
-            className={`csu-date-input${instantBookDate ? " has-value" : ""}`}
-            style={{ width: "100%", padding: "14px", borderRadius: "12px", border: instantBookDate ? "2px solid #10b981" : "2px solid rgba(255,255,255,0.2)", background: "rgba(255,255,255,0.95)", color: "#0c4a6e", fontSize: "16px", fontWeight: "600", outline: "none", boxSizing: "border-box", fontFamily:"inherit" }}
+            onChange={setInstantBookDate}
+            minDate={new Date(Date.now() + 86400000).toISOString().split('T')[0]}
+            placeholder="Pick your booking date"
+            accent={instantBookDate ? "#10b981" : "rgba(16,185,129,0.5)"}
           />
         </div>
         <div>
