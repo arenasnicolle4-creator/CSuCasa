@@ -3761,16 +3761,22 @@ style={{
 </div>
 
 {/* Instant Book CTA — 10% off first 5 cleans */}
+{/* overflow:visible (not hidden) so the DatePicker / time-Dropdown panels
+    can extend below the container. The corner-rounding that overflow:hidden
+    was buying for the inner gradient backgrounds is replaced by explicit
+    top/bottom borderRadius on each inner section. */}
 <div style={{
   marginTop: "16px",
   border: "2px solid rgba(16,185,129,0.4)",
   borderRadius: "16px",
-  overflow: "hidden",
+  overflow: "visible",
+  position: "relative",
 }}>
   {/* Header — always visible */}
   <div style={{
     padding: "18px 20px",
     background: "linear-gradient(135deg, rgba(16,185,129,0.15) 0%, rgba(5,150,105,0.12) 100%)",
+    borderRadius: "14px 14px 0 0",
   }}>
     <div style={{ display: "flex", alignItems: "center", gap: "10px", marginBottom: "10px" }}>
       <div style={{ fontSize: "24px" }}>⚡</div>
@@ -3832,7 +3838,7 @@ style={{
 
   {/* Date/time picker — expands when user clicks Instant Book */}
   {!showInstantBookPicker ? (
-    <div style={{ padding: "14px 20px", background: "rgba(16,185,129,0.08)" }}>
+    <div style={{ padding: "14px 20px", background: "rgba(16,185,129,0.08)", borderRadius: "0 0 14px 14px" }}>
       <button
         onClick={() => setShowInstantBookPicker(true)}
         style={{
@@ -3848,7 +3854,7 @@ style={{
       </button>
     </div>
   ) : (
-    <div style={{ padding: "18px 20px", background: "rgba(5,30,50,0.6)", borderTop: "1px solid rgba(16,185,129,0.25)" }}>
+    <div style={{ padding: "18px 20px", background: "rgba(5,30,50,0.6)", borderTop: "1px solid rgba(16,185,129,0.25)", borderRadius: "0 0 14px 14px" }}>
       <div style={{ fontSize: "13px", fontWeight: "800", color: "#10b981", textTransform: "uppercase", letterSpacing: "0.5px", marginBottom: "14px" }}>
         📅 Pick Your First Cleaning Date & Time
       </div>
