@@ -3797,9 +3797,27 @@ style={{
           <span style={{ color: "#10b981", fontWeight: "700" }}>-${getDiscount().toFixed(2)}</span>
         </div>
       )}
-      <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "6px", fontSize: "13px", borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "6px" }}>
-        <span style={{ color: "rgba(255,255,255,0.7)", fontWeight: "600" }}>After frequency discount</span>
-        <span style={{ color: "white", fontWeight: "700" }}>${calculateTotal().toFixed(2)}</span>
+      <div style={{ borderTop: "1px solid rgba(255,255,255,0.1)", paddingTop: "6px", marginBottom: "6px" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
+          <span style={{ color: "rgba(255,255,255,0.7)", fontWeight: "600" }}>After frequency discount</span>
+          <span style={{ color: "white", fontWeight: "700" }}>${calculateTotal().toFixed(2)}</span>
+        </div>
+        {/* Show the minimum callout when the floor kicked in, matching
+            the (Min. $X) treatment on the right-sidebar total. */}
+        {(() => {
+          const minimum =
+            serviceType === "Airbnb Cleaning" && airbnbLaundry === "no"
+              ? 139.99
+              : 154.99;
+          if (calculateSubtotal() - getDiscount() >= minimum) return null;
+          return (
+            <div style={{ display: "flex", justifyContent: "flex-end", marginTop: "2px" }}>
+              <span style={{ color: "rgba(255,255,255,0.5)", fontSize: "11px", fontWeight: "700" }}>
+                (Min. ${minimum.toFixed(2)})
+              </span>
+            </div>
+          );
+        })()}
       </div>
       <div style={{ display: "flex", justifyContent: "space-between", fontSize: "13px" }}>
         <span style={{ color: "#10b981", fontWeight: "700" }}>⚡ Instant Book (10% off)</span>
