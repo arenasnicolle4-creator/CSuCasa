@@ -521,6 +521,7 @@ const [embeddedPay, setEmbeddedPay] = useState(null); // { clientSecret, publish
 const [creatingPaySession, setCreatingPaySession] = useState(false);
 const [paymentSuccess, setPaymentSuccess] = useState(false);
 const [payError, setPayError] = useState("");
+const [portalUrl, setPortalUrl] = useState("");
 
 // Instant Book: 10% off first 5 cleanings — calculated inline where needed
 // Load Google Places API and initialize autocomplete
@@ -894,7 +895,10 @@ const handleSubmit = async (type = 'quote') => {
     email:            email,
     // Address
     address:          address,
-    address2:         address2 || 'N/A',
+    // Empty string (not 'N/A') so the FlowSTR API's filter(Boolean).join(', ')
+    // drops it cleanly — otherwise 'N/A' shows up in the Stripe checkout
+    // line-item description ("123 Main · N/A · Anchorage AK").
+    address2:         address2 || '',
     city:             city,
     state:            state,
     zip:              zip,
@@ -4671,20 +4675,45 @@ to {
               <div style={{ fontSize: 13, color: 'rgba(220,240,250,0.7)', fontWeight: 600, lineHeight: 1.6, marginBottom: 24 }}>
                 We sent a confirmation email to <strong style={{ color: '#5eead4' }}>{email}</strong>. See you soon!
               </div>
-              <button
-                onClick={() => {
-                  setPayModalOpen(false);
-                  window.scrollTo({ top: 0, behavior: 'smooth' });
-                }}
-                style={{
-                  padding: '14px 32px', borderRadius: 12, border: 'none',
-                  background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
-                  color: '#fff', fontSize: 14, fontWeight: 800, cursor: 'pointer',
-                  letterSpacing: '0.4px', textTransform: 'uppercase',
-                  boxShadow: '0 10px 28px rgba(16,185,129,0.45)',
-                  fontFamily: 'inherit',
-                }}
-              >Done</button>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, alignItems: 'center' }}>
+                {portalUrl ? (
+                  <a
+                    href={portalUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      padding: '14px 32px', borderRadius: 12,
+                      background: 'linear-gradient(135deg, #06b6d4 0%, #0284c7 100%)',
+                      color: '#fff', fontSize: 14, fontWeight: 800,
+                      letterSpacing: '0.4px', textTransform: 'uppercase',
+                      textDecoration: 'none',
+                      boxShadow: '0 10px 28px rgba(6,182,212,0.45)',
+                      display: 'inline-block',
+                      minWidth: 220,
+                    }}
+                  >Open My Portal →</a>
+                ) : (
+                  <div style={{
+                    padding: '12px 22px', borderRadius: 12,
+                    background: 'rgba(255,255,255,0.06)',
+                    color: 'rgba(220,240,250,0.6)', fontSize: 12, fontWeight: 600,
+                    border: '1px solid rgba(255,255,255,0.1)',
+                  }}>⏳ Generating your portal link…</div>
+                )}
+                <button
+                  onClick={() => {
+                    setPayModalOpen(false);
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                  }}
+                  style={{
+                    padding: '10px 24px', borderRadius: 10,
+                    background: 'transparent',
+                    color: 'rgba(220,240,250,0.7)', fontSize: 12, fontWeight: 700,
+                    border: '1px solid rgba(255,255,255,0.15)', cursor: 'pointer',
+                    fontFamily: 'inherit',
+                  }}
+                >Close</button>
+              </div>
             </div>
           ) : embeddedPay && stripePromise ? (
             // ── Phase 2: embedded checkout iframe ──
@@ -4693,7 +4722,25 @@ to {
                 stripe={stripePromise}
                 options={{
                   clientSecret: embeddedPay.clientSecret,
-                  onComplete: () => { setPaymentSuccess(true); },
+                  onComplete: () => {
+                    setPaymentSuccess(true);
+                    // Fire-and-forget portal-link fetch. The webhook may
+                    // still be processing the payment when this runs (Stripe
+                    // delivers events in a separate connection), so retry a
+                    // couple times if the quote isn't flagged paid yet.
+                    (async () => {
+                      for (let attempt = 0; attempt < 6; attempt++) {
+                        try {
+                          const res = await fetch(`https://cleansync-beryl.vercel.app/api/portal/from-paid-quote/${pendingQuoteId}`, { method: 'POST' });
+                          if (res.ok) {
+                            const data = await res.json();
+                            if (data.url) { setPortalUrl(data.url); return; }
+                          }
+                        } catch {}
+                        await new Promise(r => setTimeout(r, 1200));
+                      }
+                    })();
+                  },
                 }}
               >
                 <EmbeddedCheckout />
