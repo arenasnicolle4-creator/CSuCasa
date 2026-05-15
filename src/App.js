@@ -464,6 +464,13 @@ export default function App() {
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+  // Synchronous reentrancy guard for handleSubmit. setIsSubmitting() is a
+  // React state update so the button's disabled prop doesn't apply until
+  // the next render — a double-tap (common on mobile) fires handleSubmit
+  // twice before that, each POSTing to /api/quotes and creating a
+  // DUPLICATE quote. A ref flips synchronously so the second call bails
+  // immediately. (This was the root cause of the two-quotes-per-booking bug.)
+  const submitLockRef = useRef(false);
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [phone, setPhone] = useState("");
@@ -855,10 +862,14 @@ const handleContinueToAddOns = () => {
 }
 };
 const handleSubmit = async (type = 'quote') => {
+  // Reentrancy guard — bail synchronously if a submit is already in
+  // flight (double-tap, fast re-click). Released in the finally block.
+  if (submitLockRef.current) return;
   // Required: at least one preferred service time window. The customer
   // chooses From/To with two dropdowns but has to explicitly click
   // "+ Add this window" to lock it in — easy to miss otherwise. Hard
   // error here keeps the form from submitting with no time committed.
+  // (Checked before taking the lock so a missing-window alert can retry.)
   if (timeWindows.length === 0) {
     alert(`Please tap "+ Add this window" to lock in at least one preferred service time before submitting.`);
     // Scroll the time-window section into view so the customer sees the hint.
@@ -868,6 +879,7 @@ const handleSubmit = async (type = 'quote') => {
     }, 50);
     return;
   }
+  submitLockRef.current = true;
   setSubmissionType(type);
   setIsSubmitting(true);
   // Build individual add-on lines
@@ -1014,6 +1026,7 @@ const handleSubmit = async (type = 'quote') => {
     alert('There was an error submitting your booking. Please try again or call us directly.');
   } finally {
     setIsSubmitting(false);
+    submitLockRef.current = false;
   }
 };
 return (
