@@ -33,6 +33,13 @@ function getStripe(publishableKey, connectedAccountId) {
 const GOOGLE_PLACES_API_KEY = process.env.REACT_APP_GOOGLE_PLACES_API_KEY || "";
 const CLEANSYNC_WEBHOOK_URL = "https://cleansync-beryl.vercel.app/api/quotes";
 
+// Instant Book (10% off + embedded Stripe checkout) is HIDDEN for now
+// (2026-11-17). Nothing was deleted: the CTA/price-math/date-time picker
+// block in step 3, the handleSubmit('instant_book') path, the success copy,
+// and the pay modal are all still here and untouched. Flip this to `true`
+// to put Instant Book back exactly where and how it was.
+const INSTANT_BOOK_ENABLED = false;
+
 // 8 AM through 5 PM at 30-min increments. Used by the From/To pickers in
 // "Preferred Service Times" and the Instant-Book start-time picker.
 const SERVICE_TIMES = [
@@ -3791,6 +3798,8 @@ style={{
     can extend below the container. The corner-rounding that overflow:hidden
     was buying for the inner gradient backgrounds is replaced by explicit
     top/bottom borderRadius on each inner section. */}
+{/* Gated by INSTANT_BOOK_ENABLED (see top of file) — hidden for now. */}
+{INSTANT_BOOK_ENABLED && (
 <div style={{
   marginTop: "16px",
   border: "2px solid rgba(16,185,129,0.4)",
@@ -3954,9 +3963,10 @@ style={{
     </div>
   )}
 </div>
+)}
 
 {/* Request Quote button */}
-<div style={{ marginTop: "12px" }}>
+<div style={{ marginTop: INSTANT_BOOK_ENABLED ? "12px" : "16px" }}>
   <button
     onClick={() => handleSubmit('quote')}
     disabled={isSubmitting}
