@@ -663,6 +663,43 @@ const calcHouseSqftPrice = (sqft) => {
   return 0;
 };
 
+// ── Airbnb pricing (2026-11-23) ──────────────────────────────────────────
+// Per-sq-ft rate steps down linearly between 1,000 and 2,500 sq ft:
+//   w/ laundry  0.060 → 0.050      no laundry  0.055 → 0.047
+// Flat at the top rate below 1,000 and at the bottom rate above 2,500.
+const AIRBNB_RATE_STEP_START = 1000;
+const AIRBNB_RATE_STEP_END   = 2500;
+const AIRBNB_RATES = {
+  yes: { top: 0.06,  bottom: 0.05  },
+  no:  { top: 0.055, bottom: 0.047 },
+};
+const calcAirbnbSqftRate = (sqft, laundry) => {
+  const r = AIRBNB_RATES[laundry === "yes" ? "yes" : "no"];
+  if (sqft <= AIRBNB_RATE_STEP_START) return r.top;
+  if (sqft >= AIRBNB_RATE_STEP_END) return r.bottom;
+  const t = (sqft - AIRBNB_RATE_STEP_START) / (AIRBNB_RATE_STEP_END - AIRBNB_RATE_STEP_START);
+  return r.top + t * (r.bottom - r.top);
+};
+// The CORE Airbnb price (sq ft + beds + baths, add-ons excluded) must land
+// between $0.11 and $0.15 per sq ft. When it doesn't, a "Rate adjustment"
+// line item covers the difference. The per-visit minimum still applies
+// after discounts, so: the cap can never push the price below the minimum,
+// and a floor that the minimum already covers adds no line item.
+const AIRBNB_PSF_MIN = 0.11;
+const AIRBNB_PSF_MAX = 0.15;
+const airbnbMinimum = (laundry) => (laundry === "no" ? 139.99 : 154.99);
+const calcAirbnbBandAdjustment = (sqft, laundry, core) => {
+  if (!sqft || sqft <= 0) return 0;
+  const minimum = airbnbMinimum(laundry);
+  const lo = AIRBNB_PSF_MIN * sqft;
+  const hi = Math.max(AIRBNB_PSF_MAX * sqft, minimum);
+  if (core < lo && lo > minimum) return lo - core;
+  if (core > hi) return hi - core;
+  return 0;
+};
+// Signed money formatter for line items (the rate adjustment can be negative).
+const fmtAmt = (n) => (n < 0 ? "-$" : "$") + Math.abs(n).toFixed(2);
+
 const frequencyDiscounts = {
   "every-week": 0.2,
   "bi-weekly": 0.15,
@@ -674,16 +711,16 @@ const frequencyDiscounts = {
 const calculateSubtotal = () => {
   let total = 0;
   if (serviceType === "Airbnb Cleaning") {
-    // Airbnb pricing
-    if (airbnbSquareFeet && airbnbLaundry) {
-      const pricePerSqFt = airbnbLaundry === "yes" ? 0.095 : 0.09;
-      total += parseFloat(airbnbSquareFeet) * pricePerSqFt;
-    }
+    // Airbnb pricing — stepped per-sq-ft rate, then the $0.11–$0.15/sq ft band
+    const sqft = airbnbSquareFeet && airbnbLaundry ? parseFloat(airbnbSquareFeet) : 0;
+    if (sqft > 0) total += sqft * calcAirbnbSqftRate(sqft, airbnbLaundry);
   total += airbnbBeds * 18;
   const fullBaths = Math.floor(bathrooms);
   const hasHalfBath = bathrooms % 1 !== 0;
   total += fullBaths * 20;
   if (hasHalfBath) total += 13;
+  // Band check on the core (sq ft + beds + baths) before add-ons
+  total += calcAirbnbBandAdjustment(sqft, airbnbLaundry, total);
   // Only certain add-ons for Airbnb
   total += addOns.windows * 6;
   total += addOns.deepClean * 65;
@@ -746,9 +783,11 @@ const calculateTotal = () => {
 const getPriceBreakdown = () => {
   const items = [];
   if (serviceType === "Airbnb Cleaning") {
-    if (airbnbSquareFeet && airbnbLaundry) {
-      const pricePerSqFt = airbnbLaundry === "yes" ? 0.095 : 0.09;
-      const sqFtCost = parseFloat(airbnbSquareFeet) * pricePerSqFt;
+    const sqft = airbnbSquareFeet && airbnbLaundry ? parseFloat(airbnbSquareFeet) : 0;
+    let core = 0;
+    if (sqft > 0) {
+      const sqFtCost = sqft * calcAirbnbSqftRate(sqft, airbnbLaundry);
+      core += sqFtCost;
       items.push({
           label: `${airbnbSquareFeet} sq ft ${
             airbnbLaundry === "yes" ? "(w/ laundry)" : "(no laundry)"
@@ -757,6 +796,7 @@ const getPriceBreakdown = () => {
       });
 }
 if (airbnbBeds > 0) {
+  core += airbnbBeds * 18;
   items.push({
       label: `${airbnbBeds} Bed${airbnbBeds > 1 ? "s" : ""}`,
       amount: airbnbBeds * 18,
@@ -767,9 +807,20 @@ if (bathrooms > 0) {
   const hasHalfBath = bathrooms % 1 !== 0;
   let bathCost = fullBaths * 20;
   if (hasHalfBath) bathCost += 13;
+  core += bathCost;
   items.push({
       label: `${bathrooms} Bathroom${bathrooms > 1 ? "s" : ""}`,
       amount: bathCost,
+    });
+}
+// $0.11–$0.15 per sq ft band on the core price (mirrors calculateSubtotal)
+const bandAdj = calcAirbnbBandAdjustment(sqft, airbnbLaundry, core);
+if (Math.abs(bandAdj) >= 0.005) {
+  items.push({
+      label: bandAdj > 0
+        ? `Rate adjustment (min $${AIRBNB_PSF_MIN.toFixed(2)}/sq ft)`
+        : `Rate adjustment (max $${AIRBNB_PSF_MAX.toFixed(2)}/sq ft)`,
+      amount: bandAdj,
     });
 }
 if (addOns.windows > 0)
@@ -903,7 +954,7 @@ const handleSubmit = async (type = 'quote') => {
 
   // Build full price breakdown as formatted string
   const breakdownLines = getPriceBreakdown().map(item =>
-    `${item.label.padEnd(30, '.')} $${item.amount.toFixed(2)}`
+    `${item.label.padEnd(30, '.')} ${fmtAmt(item.amount)}`
   ).join('\n');
 
   const templateParams = {
@@ -4150,7 +4201,7 @@ style={{
   {item.label}
   </div>
   <div style={{ color: "white", fontWeight: "800", fontSize: "14px" }}>
-  ${item.amount.toFixed(2)}
+  {fmtAmt(item.amount)}
   </div>
   </div>
 ))}
@@ -4336,7 +4387,7 @@ GUARANTEED
           {getPriceBreakdown().map((item,i)=>(
             <div key={i} style={{display:"flex",justifyContent:"space-between",alignItems:"center",padding:"3px 0",fontSize:"12px",borderBottom:"1px solid rgba(255,255,255,0.06)"}}>
               <span style={{color:"rgba(255,255,255,0.8)",fontWeight:"600",flex:1,marginRight:"8px"}}>{item.label}</span>
-              <span style={{color:"white",fontWeight:"700",flexShrink:0}}>${item.amount.toFixed(2)}</span>
+              <span style={{color:"white",fontWeight:"700",flexShrink:0}}>{fmtAmt(item.amount)}</span>
             </div>
           ))}
           {getDiscount()>0&&(
